@@ -46,7 +46,8 @@ public:
 
     void OnConfigLoad(bool reload)
     {
-        if (!reload) {
+        if (!reload)
+        {
             // Load Configuration Settings
             SetInitialWorldSettings();
         }
