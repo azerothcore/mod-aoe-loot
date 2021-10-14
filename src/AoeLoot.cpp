@@ -55,8 +55,8 @@ public:
     // Load Configuration Settings
     void SetInitialWorldSettings()
     {
-        AOELootEnable = sConfigMgr->GetBoolDefault("AOELoot.Enable", 1);
-        AOELootAnnounceModule = sConfigMgr->GetBoolDefault("AOELoot.Announce.Enable", 1);
+        AOELootEnable = sConfigMgr->GetOption<bool>("AOELoot.Enable", 1);
+        AOELootAnnounceModule = sConfigMgr->GetOption<bool>("AOELoot.Announce.Enable", 1);
     };
 };
 
