@@ -53,32 +53,15 @@ void AoeLoot::Init(bool reload)
     _Enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", false);
 }
 
-void AoeLoot::Process(Loot* loot, LootStore const& store, Creature* creature, Player* player, uint8 lootSlot) const
+bool AoeLoot::IsEnableSystem() const
 {
-    QuestItem* qitem = nullptr;
-    QuestItem* ffaitem = nullptr;
-    QuestItem* conditem = nullptr;
-    LootItem* item = loot->LootItemInSlot(lootSlot, player, &qitem, &ffaitem, &conditem);
-
-    if (!item || item->is_looted)
-    {
-        if (!player->GetGroup() && creature && _Enable)
-        {   // prevents error already loot from spamming
-            // SendEquipError(EQUIP_ERR_ALREADY_LOOTED, nullptr, nullptr);
-            return;
-        }
-        else
-        {
-            player->SendEquipError(EQUIP_ERR_ALREADY_LOOTED, nullptr, nullptr);
-            return;
-        }
-    }
+    return _Enable;
 }
 
-void AoeLoot::Process(Creature* creature, Player* player) const
+bool AoeLoot::SendCreatureLoot(Creature* creature, Player* player) const
 {
-    /*if (!player->GetGroup() && creature && _Enable)
-        int i = 0;*/
+    if (player->GetGroup() || !creature || !_Enable)
+        return true;
 
     float range = 30.0f;
     uint32 gold = 0;
@@ -95,7 +78,7 @@ void AoeLoot::Process(Creature* creature, Player* player) const
         uint8 lootSlot = 0;
         uint8 maxSlot = loot->GetMaxSlotInLootFor(player);
 
-        for (int i = 0; i < maxSlot; ++i)
+        for (uint32 i = 0; i < maxSlot; ++i)
         {
             if (LootItem* item = loot->LootItemInSlot(i, player))
             {
@@ -107,7 +90,7 @@ void AoeLoot::Process(Creature* creature, Player* player) const
                 else
                 {
                     player->SendItemRetrievalMail(item->itemid, item->count);
-                    player->GetSession()->SendAreaTriggerMessage("Your items has been mailed to you.");
+                    ChatHandler(player->GetSession()).SendSysMessage("Your items has been mailed to you.");
                 }
             }
         }
@@ -130,4 +113,25 @@ void AoeLoot::Process(Creature* creature, Player* player) const
         player->ModifyMoney(loot->gold);
         player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, loot->gold);
     }
+}
+
+void AoeLoot::SendMoneyLoot(Creature* creature, Player* player) const
+{
+    if (player->GetGroup() || !creature || !_Enable)
+        return;
+
+    float range = 30.0f;
+    uint32 gold = 0;
+    Loot* loot = nullptr;
+    std::list<Creature*> creaturedie;
+    player->GetDeadCreatureListInGrid(creaturedie, range);
+
+    for (auto const& _creature : creaturedie)
+    {
+        loot = &_creature->loot;
+        gold += loot->gold;
+        loot->gold = 0;
+    }
+
+    loot->gold = gold;
 }

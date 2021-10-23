@@ -32,8 +32,11 @@ class AoeLoot
 public:
     static AoeLoot* instance();
     void Init(bool reload = false);
-    void Process(Loot* loot, LootStore const& store, Creature* creature, Player* player, uint8 lootSlot) const;
-    void Process(Creature* creature, Player* player) const;
+    
+    bool IsEnableSystem() const;
+
+    bool SendCreatureLoot(Creature* creature, Player* player) const;
+    void SendMoneyLoot(Creature* creature, Player* player) const;
 };
 
 #define sAoeLoot AoeLoot::instance()

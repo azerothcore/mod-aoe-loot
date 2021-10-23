@@ -28,17 +28,6 @@ class AoeLoot_World : public WorldScript
 public:
     AoeLoot_World() : WorldScript("AoeLoot_World") { }
 
-    void OnAfterConfigLoad(bool /*reload*/) override
-    {
-        // Add conigs options configiration
-    }
-};
-
-class AoeLoot_World : public WorldScript
-{
-public:
-    AoeLoot_World() : WorldScript("AoeLoot_World") { }
-
     void OnAfterConfigLoad(bool reload) override
     {
         // Load settings
@@ -57,15 +46,26 @@ class AoeLoot_Player : public PlayerScript
 public:
     AoeLoot_Player() : PlayerScript("AoeLoot_Player") { }
 
-    /*void Process(Loot* loot, LootStore const& store, Creature* creature, Player* player, uint8 lootSlot) const
+    bool CanSendErrorArleadyLooted(Player* /*player*/) override
     {
-        
+        return !sAoeLoot->IsEnableSystem();
+    }
+};
+
+class AoeLoot_Creature : public CreatureScript
+{
+public:
+    AoeLoot_Creature() : CreatureScript("AoeLoot_Creature") { }
+
+    bool CanSendCreaturLoot(Creature* creature, Player* player) override
+    {
+        return !sAoeLoot->SendCreatureLoot(creature, player);
     }
 
-    void Process(Creature* creature, Player* player) const
+    void OnBeforeLootMoney(Creature* creature, Player* player) override
     {
 
-    }*/
+    }
 };
 
 // Group all custom scripts
@@ -73,4 +73,5 @@ void AddSC_AoeLoot()
 {
     new AoeLoot_World();
     new AoeLoot_Player();
+    new AoeLoot_Creature();
 }
