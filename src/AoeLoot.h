@@ -18,4 +18,27 @@
 #ifndef _AOE_LOOT_H_
 #define _AOE_LOOT_H_
 
+#include "Define.h"
+
+class AoeLoot
+{
+    AoeLoot() = default;
+    ~AoeLoot() = default;
+
+    AoeLoot(AoeLoot const&) = delete;
+    AoeLoot(AoeLoot&&) = delete;
+    AoeLoot& operator= (AoeLoot const&) = delete;
+    AoeLoot& operator= (AoeLoot&&) = delete;
+public:
+    static AoeLoot* instance();
+    void Init(bool reload = false);
+    
+    bool IsEnableSystem() const;
+
+    bool SendCreatureLoot(Creature* creature, Player* player) const;
+    void SendMoneyLoot(Creature* creature, Player* player) const;
+};
+
+#define sAoeLoot AoeLoot::instance()
+
 #endif /* _AOE_LOOT_H_ */

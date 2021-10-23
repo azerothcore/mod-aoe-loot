@@ -28,9 +28,43 @@ class AoeLoot_World : public WorldScript
 public:
     AoeLoot_World() : WorldScript("AoeLoot_World") { }
 
-    void OnAfterConfigLoad(bool /*reload*/) override
+    void OnAfterConfigLoad(bool reload) override
     {
-        // Add conigs options configiration
+        // Load settings
+        sAoeLoot->Init(reload);
+    }
+
+    void OnStartup() override
+    {
+        // Load settings
+        sAoeLoot->Init(false);
+    }
+};
+
+class AoeLoot_Player : public PlayerScript
+{
+public:
+    AoeLoot_Player() : PlayerScript("AoeLoot_Player") { }
+
+    bool CanSendErrorArleadyLooted(Player* /*player*/) override
+    {
+        return !sAoeLoot->IsEnableSystem();
+    }
+};
+
+class AoeLoot_Creature : public CreatureScript
+{
+public:
+    AoeLoot_Creature() : CreatureScript("AoeLoot_Creature") { }
+
+    bool CanSendCreaturLoot(Creature* creature, Player* player) override
+    {
+        return !sAoeLoot->SendCreatureLoot(creature, player);
+    }
+
+    void OnBeforeLootMoney(Creature* creature, Player* player) override
+    {
+        sAoeLoot->SendMoneyLoot(creature, player);
     }
 };
 
@@ -38,4 +72,6 @@ public:
 void AddSC_AoeLoot()
 {
     new AoeLoot_World();
+    new AoeLoot_Player();
+    new AoeLoot_Creature();
 }
