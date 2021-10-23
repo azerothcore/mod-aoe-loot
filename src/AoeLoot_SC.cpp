@@ -64,7 +64,7 @@ public:
 
     void OnBeforeLootMoney(Creature* creature, Player* player) override
     {
-
+        sAoeLoot->SendMoneyLoot(creature, player);
     }
 };
 
