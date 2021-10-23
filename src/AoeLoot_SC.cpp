@@ -34,8 +34,43 @@ public:
     }
 };
 
+class AoeLoot_World : public WorldScript
+{
+public:
+    AoeLoot_World() : WorldScript("AoeLoot_World") { }
+
+    void OnAfterConfigLoad(bool reload) override
+    {
+        // Load settings
+        sAoeLoot->Init(reload);
+    }
+
+    void OnStartup() override
+    {
+        // Load settings
+        sAoeLoot->Init(false);
+    }
+};
+
+class AoeLoot_Player : public PlayerScript
+{
+public:
+    AoeLoot_Player() : PlayerScript("AoeLoot_Player") { }
+
+    /*void Process(Loot* loot, LootStore const& store, Creature* creature, Player* player, uint8 lootSlot) const
+    {
+        
+    }
+
+    void Process(Creature* creature, Player* player) const
+    {
+
+    }*/
+};
+
 // Group all custom scripts
 void AddSC_AoeLoot()
 {
     new AoeLoot_World();
+    new AoeLoot_Player();
 }
