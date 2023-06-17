@@ -1,8 +1,8 @@
-# mod-aoe-loot
-
 # ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore
 
 ## # mod-aoe-loot
+
+[English](README.md) | [Español](README_ES.md)
 
 - Latest build status with azerothcore:
 
@@ -13,9 +13,9 @@
 The module is currently not working. We are still working to finish it. We have made some progress, but it still needs to be functional. Do not use it, because it will give you failures. If you want to collaborate with it, you can open a pull request or an issue by completing the requested data.
 
 For the module to work, 4 things are needed.
-- [x] Create the CanSendErrorArleadyLooted hook. (created)
-- [x] Create the hook CanSendCreatureLoot (created)
-- [x] Create the hook OnBeforeCreatureLootMoney (created)
+- [x] Create the `CanSendErrorArleadyLooted` hook. (created)
+- [x] Create the hook `CanSendCreatureLoot` (created)
+- [x] Create the hook `OnBeforeCreatureLootMoney` (created)
 - [ ] The module works, if the player takes an object from the loot. If the player selects gold, it does not run. So we want to check that and also correct to be able to add up the total amount of gold obtained.
 
 ## Description
