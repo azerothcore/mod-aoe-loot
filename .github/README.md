@@ -10,13 +10,18 @@
 
 ## Important notes
 
-The module is currently not working. We are still working to finish it. We have made some progress, but it still needs to be functional. Do not use it, because it will give you failures. If you want to collaborate with it, you can open a pull request or an issue by completing the requested data.
+There may still be some improvements to be made to the module, but you could say that it is pretty good. However, we are still going to continue working and trying to revise what is needed, as long as tests are performed and it can be determined that the reports are valid.
 
 For the module to work, 4 things are needed.
-- [x] Create the `CanSendErrorArleadyLooted` hook. (created)
+- [x] Create the `CanSendErrorAlreadyLooted` hook. (created)
 - [x] Create the hook `CanSendCreatureLoot` (created)
 - [x] Create the hook `OnBeforeCreatureLootMoney` (created)
-- [ ] The module works, if the player takes an object from the loot. If the player selects gold, it does not run. So we want to check that and also correct to be able to add up the total amount of gold obtained.
+- [x] The module works, if the player takes an object from the loot. If the player selects gold, it does not run. So we want to check that and also correct to be able to add up the total amount of gold obtained.
+- [x] If the creature can be skinned, the body remains for a while, and when it is skinned, it automatically disappears to avoid being skinned again.
+
+This module requires the following pull request
+
+https://github.com/azerothcore/azerothcore-wotlk/pull/16589
 
 ## Description
 
