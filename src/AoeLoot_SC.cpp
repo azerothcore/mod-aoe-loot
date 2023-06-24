@@ -46,8 +46,13 @@ public:
         return true;
     }
 
-    void OnCreatureLootAoe(Player* player)
+    void OnCreatureLootAOE(Player* player)
     {
+        bool _enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
+
+        if (player->GetGroup() || !_enable)
+            return;
+
         float range = 30.0f;
         uint32 gold = 0;
 
@@ -83,18 +88,13 @@ public:
             {
                 if (!_creature->IsAlive())
                 {
+                    _creature->AllLootRemovedFromCorpse();
+                    _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+                    loot->clear();
+
                     if (_creature->HasUnitFlag(UNIT_FLAG_SKINNABLE))
                     {
-                        _creature->AllLootRemovedFromCorpse();
-                        _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
                         _creature->RemoveUnitFlag(UNIT_FLAG_SKINNABLE);
-                        loot->clear();
-                    }
-                    else
-                    {
-                        _creature->AllLootRemovedFromCorpse();
-                        _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
-                        loot->clear();
                     }
                 }
             }
@@ -113,25 +113,14 @@ public:
         player->GetSession()->SendPacket(&data);
     }
 
-    bool CanSendCreatureLoot(Player* player) override
+    void OnAfterCreatureLoot(Player* player) override
     {
-        bool _Enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
-
-        if (player->GetGroup() || !_Enable)
-            return true;
-
-        OnCreatureLootAoe(player);
-        return true;
+        OnCreatureLootAOE(player);
     }
 
-    void OnBeforeCreatureLootMoney(Player* player) override
+    void OnAfterCreatureLootMoney(Player* player) override
     {
-        bool _Enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
-
-        if (player->GetGroup() || !_Enable)
-            return;
-
-        OnCreatureLootAoe(player);
+        OnCreatureLootAOE(player);
     }
 };
 
