@@ -22,6 +22,12 @@
 #include "Player.h"
 #include "ScriptedGossip.h"
 
+enum AoeLootString
+{
+    AOE_ACORE_STRING_MESSAGE = 50000,
+    AOE_ITEM_IN_THE_MAIL
+};
+
 class AoeLoot_Player : public PlayerScript
 {
 public:
@@ -29,23 +35,23 @@ public:
 
     void OnLogin(Player* player) override
     {
-        if (sConfigMgr->GetOption<bool>("AOELoot.Enable", false))
+        if (sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
         {
-            ChatHandler(player->GetSession()).PSendSysMessage("This server is running the |cff4CFF00Loot aoe |r module.");
+            ChatHandler(player->GetSession()).PSendSysMessage(AOE_ACORE_STRING_MESSAGE);
         }
     }
 
-    bool CanSendErrorArleadyLooted(Player* /*player*/) override
+    bool CanSendErrorAlreadyLooted(Player* /*player*/) override
     {
         return true;
     }
 
-    bool CanSendCreatureLoot(Creature* creature, Player* player) override
+    void OnCreatureLootAOE(Player* player)
     {
-        bool _Enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
+        bool _enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
 
-        if (player->GetGroup() || !creature || !_Enable)
-            return true;
+        if (player->GetGroup() || !_enable)
+            return;
 
         float range = 30.0f;
         uint32 gold = 0;
@@ -55,12 +61,11 @@ public:
 
         for (auto const& _creature : creaturedie)
         {
-            auto loot = &_creature->loot;
+            Loot* loot = &_creature->loot;
             gold += loot->gold;
             loot->gold = 0;
-
             uint8 lootSlot = 0;
-            uint8 maxSlot = loot->GetMaxSlotInLootFor(player);
+            uint32 maxSlot = loot->GetMaxSlotInLootFor(player);
 
             for (uint32 i = 0; i < maxSlot; ++i)
             {
@@ -74,48 +79,48 @@ public:
                     else
                     {
                         player->SendItemRetrievalMail(item->itemid, item->count);
-                        ChatHandler(player->GetSession()).SendSysMessage("Your items has been mailed to you.");
+                        ChatHandler(player->GetSession()).SendSysMessage(AOE_ITEM_IN_THE_MAIL);
                     }
                 }
             }
 
-            loot->clear();
+            if (!loot->empty())
+            {
+                if (!_creature->IsAlive())
+                {
+                    _creature->AllLootRemovedFromCorpse();
+                    _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+                    loot->clear();
 
-            if (loot->isLooted() && loot->empty())
+                    if (_creature->HasUnitFlag(UNIT_FLAG_SKINNABLE))
+                    {
+                        _creature->RemoveUnitFlag(UNIT_FLAG_SKINNABLE);
+                    }
+                }
+            }
+            else
             {
                 _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+                _creature->AllLootRemovedFromCorpse();
             }
-
-            loot->gold = gold;
-            player->ModifyMoney(loot->gold);
-            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, loot->gold);
         }
-        return true;
+
+        player->ModifyMoney(gold);
+        player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, gold);
+        WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+        data << uint32(gold);
+        data << uint8(1);
+        player->GetSession()->SendPacket(&data);
     }
 
-    void OnBeforeCreatureLootMoney(Player* player) override
+    void OnAfterCreatureLoot(Player* player) override
     {
-        bool _Enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
+        OnCreatureLootAOE(player);
+    }
 
-        Creature* creature = nullptr;
-
-        if (player->GetGroup() || !creature || !_Enable)
-            return;
-
-        float range = 30.0f;
-        uint32 gold = 0;
-        Loot* loot = nullptr;
-        std::list<Creature*> creaturedie;
-        player->GetDeadCreatureListInGrid(creaturedie, range);
-
-        for (auto const& _creature : creaturedie)
-        {
-            loot = &_creature->loot;
-            gold += loot->gold;
-            loot->gold = 0;
-        }
-
-        loot->gold = gold;
+    void OnAfterCreatureLootMoney(Player* player) override
+    {
+        OnCreatureLootAOE(player);
     }
 };
 
