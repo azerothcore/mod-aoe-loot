@@ -25,4 +25,4 @@ https://github.com/azerothcore/azerothcore-wotlk/pull/16589
 
 ## Descripción
 
-El objetivo de este módulo es permitir a los jugadores obtener todos los objetos de varios npc's dentro de un cierto rango de distancia. Actualmente está en desarrollo y aún no está terminado. Si quieres colaborar con él, puedes hacerlo creando un pull request.
+El objetivo de este módulo es permitir a los jugadores obtener todos los objetos de varios npc's dentro de un cierto rango de distancia.
