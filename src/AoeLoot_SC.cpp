@@ -76,7 +76,7 @@ public:
                         player->SendNotifyLootItemRemoved(lootSlot);
                         player->SendLootRelease(player->GetLootGUID());
                     }
-                    else
+                    else if (sConfigMgr->GetOption<bool>("AOELoot.MailEnable", true))
                     {
                         player->SendItemRetrievalMail(item->itemid, item->count);
                         ChatHandler(player->GetSession()).SendSysMessage(AOE_ITEM_IN_THE_MAIL);

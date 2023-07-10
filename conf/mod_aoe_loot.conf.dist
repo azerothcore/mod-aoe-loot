@@ -24,3 +24,13 @@
 #
 
 AOELoot.Enable = 1
+
+#
+#   AOELoot.MailEnable
+#       Description: Enables the sending of mail if there are no spaces in the bags.
+#       Default:    1 (Enabled)
+#       Possible values:    0 - (Disabled)
+#                           1 - (Enabled)
+#
+
+AOELoot.MailEnable = 1
