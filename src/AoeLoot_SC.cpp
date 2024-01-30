@@ -50,7 +50,7 @@ public:
     {
         bool _enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
 
-        if (player->GetGroup() || !_enable)
+        if (player->GetGroup() && player->GetGroup()->GetLootMethod() != FREE_FOR_ALL || !_enable)
             return;
 
         float range = 30.0f;
