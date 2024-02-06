@@ -28,6 +28,8 @@ enum AoeLootString
     AOE_ITEM_IN_THE_MAIL
 };
 
+typedef std::map<uint32, uint32> AOEContainer;
+
 class AoeLoot_Player : public PlayerScript
 {
 public:
@@ -50,81 +52,132 @@ public:
     {
         bool _enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
 
-        if ((player->GetGroup() && (player->GetGroup()->GetLootMethod() != FREE_FOR_ALL)) || !_enable)
+        if (!_enable)
             return;
 
-        float range = 30.0f;
+        float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
+
         uint32 gold = 0;
 
-        std::list<Creature*> creaturedie;
-        player->GetDeadCreatureListInGrid(creaturedie, range);
+        std::list<Creature*> deadCreatures;
+        deadCreatures.clear();
+        AOEContainer aoeLoot;
+        player->GetDeadCreatureListInGrid(deadCreatures, range, false);
 
-        for (auto const& _creature : creaturedie)
+        for (auto& _creature : deadCreatures)
         {
-            Loot* loot = &_creature->loot;
-            gold += loot->gold;
-            loot->gold = 0;
-            uint8 lootSlot = 0;
-            uint32 maxSlot = loot->GetMaxSlotInLootFor(player);
-
-            for (uint32 i = 0; i < maxSlot; ++i)
+            if (player->GetGroup())
             {
-                if (LootItem* item = loot->LootItemInSlot(i, player))
+                if (player->GetGroup()->GetMembersCount() > 1)
                 {
-                    ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item->itemid);
+                    if (_creature->IsDungeonBoss() || _creature->isWorldBoss())
+                        continue;
+                }
+                else if (player->GetGroup()->GetMembersCount() == 1)
+                {
+                    player->GetGroup()->SetLootMethod(FREE_FOR_ALL);
+                }
+            }
+
+            if (player == _creature->GetLootRecipient() && (_creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE)))
+            {
+                Loot* loot = &_creature->loot;
+                gold += loot->gold;
+                loot->gold = 0;
+
+                for (auto const& item : loot->items)
+                {
+                    if (loot->items.size() > 1 && (loot->items[item.itemIndex].itemid == loot->items[item.itemIndex + 1].itemid))
+                        continue;
+
+                    ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item.itemid);
 
                     if (itemTemplate->MaxCount != 1)
                     {
-                        if (player->AddItem(item->itemid, item->count))
-                        {
-                            player->SendNotifyLootItemRemoved(lootSlot);
-                            player->SendLootRelease(player->GetLootGUID());
-                        }
-                        else if (sConfigMgr->GetOption<bool>("AOELoot.MailEnable", true))
-                        {
-                            player->SendItemRetrievalMail(item->itemid, item->count);
-                            ChatHandler(player->GetSession()).SendSysMessage(AOE_ITEM_IN_THE_MAIL);
-                        }
+                        aoeLoot[item.itemid] += (uint32)item.count;
                     }
                     else
                     {
-                        if (!player->HasItemCount(item->itemid, 1))
-                        {
-                            player->AddItem(item->itemid, item->count);
-                        }
-                        player->SendNotifyLootItemRemoved(lootSlot);
-                        player->SendLootRelease(player->GetLootGUID());
+                        if (!player->HasItemCount(item.itemid, 1, true))
+                            aoeLoot[item.itemid] = 1;
                     }
+                    player->SendNotifyLootItemRemoved(item.itemIndex);
                 }
-            }
 
-            if (!loot->empty())
-            {
-                if (!_creature->IsAlive())
+                player->SendLootRelease(player->GetLootGUID());
+
+                if (!loot->empty())
                 {
-                    _creature->AllLootRemovedFromCorpse();
-                    _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
-                    loot->clear();
-
-                    if (_creature->HasUnitFlag(UNIT_FLAG_SKINNABLE))
+                    if (!_creature->IsAlive())
                     {
-                        _creature->RemoveUnitFlag(UNIT_FLAG_SKINNABLE);
+                        _creature->AllLootRemovedFromCorpse();
+                        _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+                        loot->clear();
+
+                        if (_creature->HasUnitFlag(UNIT_FLAG_SKINNABLE))
+                        {
+                            _creature->RemoveUnitFlag(UNIT_FLAG_SKINNABLE);
+                        }
                     }
                 }
-            }
-            else
-            {
-                _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
-                _creature->AllLootRemovedFromCorpse();
+                else
+                {
+                    _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
+                    _creature->AllLootRemovedFromCorpse();
+                }
             }
         }
 
-        player->ModifyMoney(gold);
-        player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, gold);
-        WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
-        data << uint32(gold);
-        data << uint8(1);
-        player->GetSession()->SendPacket(&data);
+        for (auto const& [itemId, count] : aoeLoot)
+        {
+            if (!player->AddItem(itemId, count))
+            {
+                if (sConfigMgr->GetOption<bool>("AOELoot.MailEnable", true))
+                {
+                    player->SendItemRetrievalMail(itemId, count);
+                    ChatHandler(player->GetSession()).SendSysMessage(AOE_ITEM_IN_THE_MAIL);
+                }
+            }
+        }
+
+        if (player->GetGroup())
+        {
+            Group* group = player->GetGroup();
+
+            std::vector<Player*> playersNear;
+            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            {
+                Player* member = itr->GetSource();
+                if (!member)
+                    continue;
+
+                if (player->IsAtLootRewardDistance(member))
+                    playersNear.push_back(member);
+            }
+
+            uint32 goldPerPlayer = uint32((gold) / (playersNear.size()));
+
+            for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
+            {
+                (*i)->ModifyMoney(goldPerPlayer);
+                (*i)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, goldPerPlayer);
+
+                WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+                data << uint32(goldPerPlayer);
+                data << uint8(playersNear.size() > 1 ? 0 : 1);
+                (*i)->GetSession()->SendPacket(&data);
+            }
+        }
+        else
+        {
+            player->ModifyMoney(gold);
+            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, gold);
+
+            WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+            data << uint32(gold);
+            data << uint8(1);
+            player->GetSession()->SendPacket(&data);
+        }
     }
 
     void OnAfterCreatureLoot(Player* player) override

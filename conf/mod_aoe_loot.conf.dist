@@ -34,3 +34,11 @@ AOELoot.Enable = 1
 #
 
 AOELoot.MailEnable = 1
+
+#
+#   AOELoot.Range
+#       Description: Maximum reach range search loot.
+#       Default:    30.0
+#
+
+AOELoot.Range = 30.0
