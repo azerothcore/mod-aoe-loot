@@ -61,9 +61,18 @@ public:
 
         for (auto const& _creature : creaturedie)
         {
-            if (player->GetGroup() && (player->GetGroup()->GetMembersCount()) > 1)
-                if (_creature->IsDungeonBoss() || _creature->isWorldBoss())
-                    continue;
+            if (player->GetGroup())
+            {
+                if (player->GetGroup()->GetMembersCount() > 1)
+                {
+                    if (_creature->IsDungeonBoss() || _creature->isWorldBoss())
+                        continue;
+                }
+                else if (player->GetGroup()->GetMembersCount() == 1)
+                {
+                    player->GetGroup()->SetLootMethod(FREE_FOR_ALL);
+                }
+            }
 
             if (player == _creature->GetLootRecipient())
             {
