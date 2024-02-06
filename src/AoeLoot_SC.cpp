@@ -84,7 +84,6 @@ public:
                 Loot* loot = &_creature->loot;
                 gold += loot->gold;
                 loot->gold = 0;
-                uint8 lootSlot = 0;
 
                 for (auto const& item : loot->items)
                 {
