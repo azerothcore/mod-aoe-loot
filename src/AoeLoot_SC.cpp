@@ -28,6 +28,8 @@ enum AoeLootString
     AOE_ITEM_IN_THE_MAIL
 };
 
+typedef std::map<uint32, uint32> AOEContainer;
+
 class AoeLoot_Player : public PlayerScript
 {
 public:
@@ -57,10 +59,12 @@ public:
 
         uint32 gold = 0;
 
-        std::list<Creature*> creaturedie;
-        player->GetDeadCreatureListInGrid(creaturedie, range);
+        std::list<Creature*> deadCreatures;
+        deadCreatures.clear();
+        AOEContainer aoeLoot;
+        player->GetDeadCreatureListInGrid(deadCreatures, range, false);
 
-        for (auto const& _creature : creaturedie)
+        for (auto& _creature : deadCreatures)
         {
             if (player->GetGroup())
             {
@@ -75,47 +79,33 @@ public:
                 }
             }
 
-            if (player == _creature->GetLootRecipient())
+            if (player == _creature->GetLootRecipient() && (_creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE)))
             {
                 Loot* loot = &_creature->loot;
                 gold += loot->gold;
                 loot->gold = 0;
                 uint8 lootSlot = 0;
-                uint32 maxSlot = loot->GetMaxSlotInLootFor(player);
 
-                for (uint32 i = 0; i < maxSlot; ++i)
+                for (auto const& item : loot->items)
                 {
-                    if (LootItem* item = loot->LootItemInSlot(i, player))
+                    if (loot->items.size() > 1 && (loot->items[item.itemIndex].itemid == loot->items[item.itemIndex + 1].itemid))
+                        continue;
+
+                    ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item.itemid);
+
+                    if (itemTemplate->MaxCount != 1)
                     {
-                        ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item->itemid);
-
-                        if (itemTemplate->MaxCount != 1)
-                        {
-                            player->SendNotifyLootItemRemoved(lootSlot);
-                            player->SendLootRelease(player->GetLootGUID());
-
-                            if (player->AddItem(item->itemid, item->count))
-                            {
-                                player->SendNotifyLootItemRemoved(lootSlot);
-                                player->SendLootRelease(player->GetLootGUID());
-                            }
-                            else if (sConfigMgr->GetOption<bool>("AOELoot.MailEnable", true))
-                            {
-                                player->SendItemRetrievalMail(item->itemid, item->count);
-                                ChatHandler(player->GetSession()).SendSysMessage(AOE_ITEM_IN_THE_MAIL);
-                            }
-                        }
-                        else
-                        {
-                            if (!player->HasItemCount(item->itemid, 1))
-                            {
-                                player->AddItem(item->itemid, item->count);
-                            }
-                            player->SendNotifyLootItemRemoved(lootSlot);
-                            player->SendLootRelease(player->GetLootGUID());
-                        }
+                        aoeLoot[item.itemid] += (uint32)item.count;
                     }
+                    else
+                    {
+                        if (!player->HasItemCount(item.itemid, 1, true))
+                            aoeLoot[item.itemid] = 1;
+                    }
+                    player->SendNotifyLootItemRemoved(item.itemIndex);
                 }
+
+                player->SendLootRelease(player->GetLootGUID());
 
                 if (!loot->empty())
                 {
@@ -135,6 +125,18 @@ public:
                 {
                     _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
                     _creature->AllLootRemovedFromCorpse();
+                }
+            }
+        }
+
+        for (auto const& [itemId, count] : aoeLoot)
+        {
+            if (!player->AddItem(itemId, count))
+            {
+                if (sConfigMgr->GetOption<bool>("AOELoot.MailEnable", true))
+                {
+                    player->SendItemRetrievalMail(itemId, count);
+                    ChatHandler(player->GetSession()).SendSysMessage(AOE_ITEM_IN_THE_MAIL);
                 }
             }
         }
