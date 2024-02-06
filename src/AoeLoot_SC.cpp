@@ -53,7 +53,8 @@ public:
         if (!_enable)
             return;
 
-        float range = 30.0f;
+        float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
+
         uint32 gold = 0;
 
         std::list<Creature*> creaturedie;
