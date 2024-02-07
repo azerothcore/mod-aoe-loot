@@ -185,7 +185,7 @@ public:
         OnCreatureLootAOE(player);
     }
 
-    void OnAfterCreatureLootMoney(Player* player) override
+    void OnBeforeLootMoney(Player* player, Loot* /*loot*/) override
     {
         OnCreatureLootAOE(player);
     }
