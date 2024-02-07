@@ -8,7 +8,7 @@
 
 [![Build Status](https://github.com/azerothcore/mod-aoe-loot/workflows/core-build/badge.svg?branch=master&event=push)](https://github.com/azerothcore/mod-aoe-loot)
 
-![bloggif_65c3814c1ec76](https://github.com/azerothcore/mod-aoe-loot/assets/2810187/acd4bfc4-5cfb-4508-85ab-d8787f51c44e)
+<img src="https://github.com/azerothcore/mod-aoe-loot/assets/2810187/acd4bfc4-5cfb-4508-85ab-d8787f51c44e" width="800" height="600"/>
 
 ## Important notes
 
