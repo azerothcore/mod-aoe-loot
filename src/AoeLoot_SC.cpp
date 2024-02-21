@@ -101,7 +101,11 @@ public:
                         if (!player->HasItemCount(item.itemid, 1, true))
                             aoeLoot[item.itemid] = 1;
                     }
-                    player->SendNotifyLootItemRemoved(item.itemIndex);
+                }
+
+                for (auto const& item : loot->quest_items)
+                {
+                    aoeLoot[item.itemid] += (uint32)item.count;
                 }
 
                 player->SendLootRelease(player->GetLootGUID());
