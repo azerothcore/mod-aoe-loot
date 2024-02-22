@@ -193,6 +193,26 @@ public:
     {
         OnCreatureLootAOE(player);
     }
+
+    /*
+    * This function is responsible for deleting the player's leftover items.
+    * But it only deletes those that are from a quest, and that cannot be obtained if the quest were not being carried out.
+    * Since there are some items that can be obtained even if you are not doing a quest.
+    */
+
+    void OnPlayerCompleteQuest(Player* player, Quest const* quest) override
+    {
+        for (uint8 i = 0; i < QUEST_ITEM_OBJECTIVES_COUNT; ++i)
+        {
+            if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(quest->RequiredItemId[i]))
+            {
+                if ((itemTemplate->Bonding == BIND_QUEST_ITEM) && (!quest->IsRepeatable()))
+                {
+                    player->DestroyItemCount(quest->RequiredItemId[i], 9999, true);
+                }
+            }
+        }
+    }
 };
 
 void AddSC_AoeLoot()
