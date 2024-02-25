@@ -117,11 +117,6 @@ public:
                         _creature->AllLootRemovedFromCorpse();
                         _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
                         loot->clear();
-
-                        if (_creature->HasUnitFlag(UNIT_FLAG_SKINNABLE))
-                        {
-                            _creature->RemoveUnitFlag(UNIT_FLAG_SKINNABLE);
-                        }
                     }
                 }
                 else
