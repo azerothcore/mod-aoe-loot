@@ -21,6 +21,7 @@
 #include "Chat.h"
 #include "Player.h"
 #include "ScriptedGossip.h"
+#include "LootMgr.h"
 
 enum AoeLootString
 {
@@ -56,50 +57,33 @@ public:
             return;
 
         float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
-
         uint32 gold = 0;
-
         std::list<Creature*> deadCreatures;
         deadCreatures.clear();
         AOEContainer aoeLoot;
-        player->GetDeadCreatureListInGrid(deadCreatures, range, false);
+        player->GetDeadCreatureListInGrid(deadCreatures, range);
+        uint32 lootSlot = 0;
 
-        for (auto& _creature : deadCreatures)
+        for (auto const& _creature : deadCreatures)
         {
-            if (player->GetGroup())
-            {
-                if (player->GetGroup()->GetMembersCount() > 1)
-                {
-                    if (_creature->IsDungeonBoss() || _creature->isWorldBoss())
-                        continue;
-                }
-                else if (player->GetGroup()->GetMembersCount() == 1)
-                {
-                    player->GetGroup()->SetLootMethod(FREE_FOR_ALL);
-                }
-            }
+            Loot* loot = &_creature->loot;
+            gold += loot->gold;
+            loot->gold = 0;
 
-            if (player == _creature->GetLootRecipient() && (_creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE)))
+            if (player->isAllowedToLoot(_creature))
             {
-                Loot* loot = &_creature->loot;
-                gold += loot->gold;
-                loot->gold = 0;
-
                 for (auto const& item : loot->items)
                 {
-                    if (loot->items.size() > 1 && (loot->items[item.itemIndex].itemid == loot->items[item.itemIndex + 1].itemid))
-                        continue;
-
                     ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item.itemid);
 
-                    if (itemTemplate->MaxCount != 1)
-                    {
-                        aoeLoot[item.itemid] += (uint32)item.count;
-                    }
-                    else
+                    if (itemTemplate->MaxCount == 1)
                     {
                         if (!player->HasItemCount(item.itemid, 1, true))
                             aoeLoot[item.itemid] = 1;
+                    }
+                    else
+                    {
+                        aoeLoot[item.itemid] += (uint32)item.count;
                     }
                 }
 
@@ -108,23 +92,21 @@ public:
                     aoeLoot[item.itemid] += (uint32)item.count;
                 }
 
-                player->SendLootRelease(player->GetLootGUID());
-
-                if (!loot->empty())
+                if (loot->isLooted())
                 {
                     if (!_creature->IsAlive())
                     {
                         _creature->AllLootRemovedFromCorpse();
-                        _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
-                        loot->clear();
                     }
+
+                    _creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
+                    loot->clear();
                 }
-                else
-                {
-                    _creature->RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
-                    _creature->AllLootRemovedFromCorpse();
-                }
+
+                player->SendLootRelease(player->GetLootGUID());
             }
+
+            loot->clear();
         }
 
         for (auto const& [itemId, count] : aoeLoot)
