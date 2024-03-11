@@ -107,6 +107,45 @@ public:
                 _creature->ForceValuesUpdateAtIndex(UNIT_DYNAMIC_FLAGS);
             }
         }
+
+        if (player->GetGroup())
+        {
+            Group* group = player->GetGroup();
+
+            std::vector<Player*> playersNear;
+            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            {
+                Player* member = itr->GetSource();
+                if (!member)
+                    continue;
+
+                if (player->IsAtLootRewardDistance(member))
+                    playersNear.push_back(member);
+            }
+
+            uint32 goldPerPlayer = uint32((gold) / (playersNear.size()));
+
+            for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
+            {
+                (*i)->ModifyMoney(goldPerPlayer);
+                (*i)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, goldPerPlayer);
+
+                WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+                data << uint32(goldPerPlayer);
+                data << uint8(playersNear.size() > 1 ? 0 : 1);
+                (*i)->GetSession()->SendPacket(&data);
+            }
+        }
+        else
+        {
+            player->ModifyMoney(gold);
+            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, gold);
+
+            WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
+            data << uint32(gold);
+            data << uint8(1);
+            player->GetSession()->SendPacket(&data);
+        }
     }
 
     void OnAfterCreatureLoot(Player* player) override
