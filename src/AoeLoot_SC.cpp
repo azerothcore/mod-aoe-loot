@@ -15,13 +15,11 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Log.h"
 #include "ScriptMgr.h"
 #include "Config.h"
 #include "Chat.h"
 #include "Player.h"
 #include "ScriptedGossip.h"
-#include "LootMgr.h"
 
 enum AoeLootString
 {
@@ -29,7 +27,6 @@ enum AoeLootString
     AOE_ITEM_IN_THE_MAIL
 };
 
-typedef std::map<uint32, uint32> AOEContainer;
 
 class AoeLoot_Player : public PlayerScript
 {
@@ -56,108 +53,59 @@ public:
         if (!_enable)
             return;
 
-        float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
-        uint32 gold = 0;
         std::list<Creature*> deadCreatures;
-        deadCreatures.clear();
-        AOEContainer aoeLoot;
-        player->GetDeadCreatureListInGrid(deadCreatures, range);
-        uint32 lootSlot = 0;
 
-        for (auto const& _creature : deadCreatures)
+        float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
+
+        uint32 gold = 0;
+
+        player->GetDeadCreatureListInGrid(deadCreatures, range);
+
+        for (auto& _creature : deadCreatures)
         {
+            ObjectGuid lootGuid = player->GetLootGUID();
             Loot* loot = &_creature->loot;
             gold += loot->gold;
             loot->gold = 0;
+            uint8 maxSlot = loot->GetMaxSlotInLootFor(player);
 
-            if (player->isAllowedToLoot(_creature))
+            for (uint32 lootSlot = 0; lootSlot < maxSlot; ++lootSlot)
             {
-                for (auto const& item : loot->items)
+                InventoryResult msg;
+                LootItem* lootItem = player->StoreLootItem(lootSlot, loot, msg);
+
+                if (msg != EQUIP_ERR_OK && lootGuid.IsItem() && loot->loot_type != LOOT_CORPSE)
                 {
-                    ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item.itemid);
+                    lootItem->is_looted = true;
+                    loot->NotifyItemRemoved(lootItem->itemIndex);
+                    loot->unlootedCount--;
 
-                    if (itemTemplate->MaxCount == 1)
-                    {
-                        if (!player->HasItemCount(item.itemid, 1, true))
-                            aoeLoot[item.itemid] = 1;
-                    }
-                    else
-                    {
-                        aoeLoot[item.itemid] += (uint32)item.count;
-                    }
-                }
-
-                for (auto const& item : loot->quest_items)
-                {
-                    aoeLoot[item.itemid] += (uint32)item.count;
-                }
-
-                if (loot->isLooted())
-                {
-                    if (!_creature->IsAlive())
-                    {
-                        _creature->AllLootRemovedFromCorpse();
-                    }
-
-                    _creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
-                    loot->clear();
-                }
-
-                player->SendLootRelease(player->GetLootGUID());
-            }
-
-            loot->clear();
-        }
-
-        for (auto const& [itemId, count] : aoeLoot)
-        {
-            if (!player->AddItem(itemId, count))
-            {
-                if (sConfigMgr->GetOption<bool>("AOELoot.MailEnable", true))
-                {
-                    player->SendItemRetrievalMail(itemId, count);
-                    ChatHandler(player->GetSession()).SendSysMessage(AOE_ITEM_IN_THE_MAIL);
+                    player->SendItemRetrievalMail(lootItem->itemid, lootItem->count);
                 }
             }
-        }
 
-        if (player->GetGroup())
-        {
-            Group* group = player->GetGroup();
-
-            std::vector<Player*> playersNear;
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            if (loot->isLooted())
             {
-                Player* member = itr->GetSource();
-                if (!member)
-                    continue;
+                // skip pickpocketing loot for speed, skinning timer reduction is no-op in fact
+                if (!_creature->IsAlive())
+                    _creature->AllLootRemovedFromCorpse();
 
-                if (player->IsAtLootRewardDistance(member))
-                    playersNear.push_back(member);
+                _creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
+                loot->clear();
             }
-
-            uint32 goldPerPlayer = uint32((gold) / (playersNear.size()));
-
-            for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
+            else
             {
-                (*i)->ModifyMoney(goldPerPlayer);
-                (*i)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, goldPerPlayer);
+                // if the round robin player release, reset it.
+                if (player->GetGUID() == loot->roundRobinPlayer)
+                {
+                    loot->roundRobinPlayer.Clear();
 
-                WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
-                data << uint32(goldPerPlayer);
-                data << uint8(playersNear.size() > 1 ? 0 : 1);
-                (*i)->GetSession()->SendPacket(&data);
+                    if (Group* group = player->GetGroup())
+                        group->SendLooter(_creature, nullptr);
+                }
+                // force dynflag update to update looter and lootable info
+                _creature->ForceValuesUpdateAtIndex(UNIT_DYNAMIC_FLAGS);
             }
-        }
-        else
-        {
-            player->ModifyMoney(gold);
-            player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, gold);
-
-            WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
-            data << uint32(gold);
-            data << uint8(1);
-            player->GetSession()->SendPacket(&data);
         }
     }
 
