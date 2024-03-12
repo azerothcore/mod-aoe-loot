@@ -53,17 +53,15 @@ public:
         if (!_enable)
             return;
 
-        std::list<Creature*> deadCreatures;
-
         float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
 
+        std::list<Creature*> deadCreatures;
         uint32 gold = 0;
-
         player->GetDeadCreatureListInGrid(deadCreatures, range);
+        ObjectGuid lootGuid = player->GetLootGUID();
 
         for (auto& _creature : deadCreatures)
         {
-            ObjectGuid lootGuid = player->GetLootGUID();
             Loot* loot = &_creature->loot;
             gold += loot->gold;
             loot->gold = 0;
@@ -81,6 +79,10 @@ public:
                     loot->unlootedCount--;
 
                     player->SendItemRetrievalMail(lootItem->itemid, lootItem->count);
+                }
+                else
+                {
+                    player->SendLootRelease(lootGuid);
                 }
             }
 
