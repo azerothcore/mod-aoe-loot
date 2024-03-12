@@ -1,6 +1,6 @@
 # ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore
 
-## # mod-aoe-loot
+# mod-aoe-loot
 
 [English](README.md) | [Español](README_ES.md)
 
@@ -8,47 +8,14 @@
 
 [![Build Status](https://github.com/azerothcore/mod-aoe-loot/workflows/core-build/badge.svg?branch=master&event=push)](https://github.com/azerothcore/mod-aoe-loot)
 
-![Example](example.gif)
+# Important note
 
-## Important notes
+The module is currently under development. Although, we believe that it works in almost all areas, since we have carried out tests and also received reports, from people who played in a group, people alone, people inside a dungeon (whether they entered by walking or used the module `mod-solo-lfg`), we do not rule out that an error may arise, so it is important that you help us test the content, and creating a report within the repository issues, in case you find a possible error .
 
-The module is currently under development, but is functional. It should be compatible at least with the module: mod-solo-lfg. Loot can be done in an area, both in a group and alone, and it works both when obtaining an item and when obtaining gold, so the client's self-loot option could be enabled. In the configuration file, there are some variables that can be modified, such as sending the item by mail if the bags are full, or increasing the search range for bodies. When you chop an ore, you may also obtain all the items from the bodies, with chests I have done the test and it does not work, but with ores, I understand that it does, it remains to be seen if it also supports the herbalist profession in case you have some material near the bodies.
+To work, the module requires updated versions of the emulator, since some hooks that have existed for a long time are used, but some hooks also had to be created for it. So check your version of the emulator, with the `.server info` command and make sure you use the most updated version of it. Inside the `data/sql` folder is a simple script that adds translations of the welcome message. You can add the remaining languages, and the script should run automatically if you have the default options enabled within the `worldserver.conf`, otherwise you may have to run them manually.
 
-The time that a body remains in the world, after having no items, is determined in the worldserver.conf configuration file, so when loot in area, it is perhaps necessary to increase that time a little, to give it time for people who have the skinning skill, enough time to be able to obtain the materials for said skill, without the body being erased too quickly.
+# How is it used?
 
-```
-#
-#    Corpse.Decay.NORMAL
-#    Corpse.Decay.RARE
-#    Corpse.Decay.ELITE
-#    Corpse.Decay.RAREELITE
-#    Corpse.Decay.WORLDBOSS
-#        Description: Time (in seconds) until creature corpse will decay if not looted or skinned.
-#        Default:     60   - (1 Minute, Corpse.Decay.NORMAL)
-#                     300  - (5 Minutes, Corpse.Decay.RARE)
-#                     300  - (5 Minutes, Corpse.Decay.ELITE)
-#                     300  - (5 Minutes, Corpse.Decay.RAREELITE)
-#                     3600 - (1 Hour, Corpse.Decay.WORLDBOSS)
+Clone the repository into the modules folder of the emulator, or download the zip and unzip it. Keep in mind that if you use the .zip, it will probably add a `-` to the end of the unzipped folder and then the name of the branch you have downloaded. We recommend cloning the repository, to be able, if it exists, to easily download updates without the need to download all the content again.
 
-Corpse.Decay.NORMAL    = 60
-Corpse.Decay.RARE      = 300
-Corpse.Decay.ELITE     = 300
-Corpse.Decay.RAREELITE = 300
-Corpse.Decay.WORLDBOSS = 3600
-
-#
-#    Rate.Corpse.Decay.Looted
-#        Description: Multiplier for Corpse.Decay.* to configure how long creature corpses stay
-#                     after they have been looted.
-#         Default:    0.5
-
-Rate.Corpse.Decay.Looted = 0.5
-```
-
-This module requires the following pull request
-
-https://github.com/azerothcore/azerothcore-wotlk/pull/16589
-
-## Description
-
-The objective of this module is to allow players to obtain all items from various npc's within a certain distance range.
+Thanks to all the people, who in one way or another participated and actively participate in this module, so that it can continue to be updated and working. If you are a collaborator or are interested in being one, do not hesitate to open a pull request, with the content that you would like the module to have or to fix any possible bug.
