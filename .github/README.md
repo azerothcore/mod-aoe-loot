@@ -10,12 +10,23 @@
 
 # Important note
 
-The module is currently under development and is based on [the work of acidmanifesto](https://github.com/azerothcore/mod-aoe-loot/pull/2). Although, we believe that it works in almost all areas, since we have carried out tests and also received reports, from people who played in a group, people alone, people inside a dungeon (whether they entered by walking or used the module `mod-solo-lfg`), we do not rule out that an error may arise, so it is important that you help us test the content, and creating a report within the repository issues, in case you find a possible error .
+- The mod allows you to obtain all the items from nearby bodies, by looting only one of them.
+- It is important to make a modification in the emulator, regarding the delay of the bodies.
 
-To work, the module requires updated versions of the emulator, since some hooks that have existed for a long time are used, but some hooks also had to be created for it. So check your version of the emulator, with the `.server info` command and make sure you use the most updated version of it. Inside the `data/sql` folder is a simple script that adds translations of the welcome message. You can add the remaining languages, and the script should run automatically if you have the default options enabled within the `worldserver.conf`, otherwise you may have to run them manually.
+```
+#
+#    Rate.Corpse.Decay.Looted
+#        Description: Multiplier for Corpse.Decay.* to configure how long creature corpses stay
+#                     after they have been looted.
+#         Default:    0.5
 
-# How is it used?
+Rate.Corpse.Decay.Looted = 0.5
+```
 
-Clone the repository into the modules folder of the emulator, or download the zip and unzip it. Keep in mind that if you use the .zip, it will probably add a `-` to the end of the unzipped folder and then the name of the branch you have downloaded. We recommend cloning the repository, to be able, if it exists, to easily download updates without the need to download all the content again.
+Consider changing that value, to `0.01` or lower. Perform tests to avoid problems.
 
-Thanks to all the people, who in one way or another participated and actively participate in this module, so that it can continue to be updated and working. If you are a collaborator or are interested in being one, do not hesitate to open a pull request, with the content that you would like the module to have or to fix any possible bug.
+## Credits
+
+- acidmanifesto [Author of the idea and part of the initial code.](https://github.com/azerothcore/mod-aoe-loot/pull/2)
+- Hooks and updates from the AzerothCore community
+- AzerothCore: [repository](https://github.com/azerothcore) - [website](https://azerothcore.org/) - [discord chat community](https://discord.gg/PaqQRkd)
