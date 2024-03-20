@@ -10,7 +10,7 @@
 
 # Important note
 
-The module is currently under development. Although, we believe that it works in almost all areas, since we have carried out tests and also received reports, from people who played in a group, people alone, people inside a dungeon (whether they entered by walking or used the module `mod-solo-lfg`), we do not rule out that an error may arise, so it is important that you help us test the content, and creating a report within the repository issues, in case you find a possible error .
+The module is currently under development and is based on [the work of acidmanifesto](https://github.com/azerothcore/mod-aoe-loot/pull/2). Although, we believe that it works in almost all areas, since we have carried out tests and also received reports, from people who played in a group, people alone, people inside a dungeon (whether they entered by walking or used the module `mod-solo-lfg`), we do not rule out that an error may arise, so it is important that you help us test the content, and creating a report within the repository issues, in case you find a possible error .
 
 To work, the module requires updated versions of the emulator, since some hooks that have existed for a long time are used, but some hooks also had to be created for it. So check your version of the emulator, with the `.server info` command and make sure you use the most updated version of it. Inside the `data/sql` folder is a simple script that adds translations of the welcome message. You can add the remaining languages, and the script should run automatically if you have the default options enabled within the `worldserver.conf`, otherwise you may have to run them manually.
 
