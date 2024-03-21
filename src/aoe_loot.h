@@ -30,7 +30,7 @@ enum AoeLootString
     AOE_ITEM_IN_THE_MAIL
 };
 
-void OnCreatureLootAOE(Player* player);
+void OnCreatureLootAOE(Player* player, ObjectGuid lootguid);
 
 class AoeLootPlayer : public PlayerScript
 {
@@ -39,7 +39,7 @@ public:
 
     void OnLogin(Player* player) override;
     bool CanSendErrorAlreadyLooted(Player* /*player*/) override;
-    void OnAfterCreatureLoot(Player* player) override;
+    void OnLootItem(Player* player, Item* /*item*/, uint32 /*count*/, ObjectGuid lootguid) override;
     void OnBeforeLootMoney(Player* player, Loot* /*loot*/) override;
     void OnPlayerCompleteQuest(Player* player, Quest const* quest) override;
 };
