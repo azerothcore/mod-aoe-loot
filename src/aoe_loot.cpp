@@ -17,11 +17,14 @@
 
 #include "aoe_loot.h"
 
-void OnCreatureLootAOE(Player* player)
+void OnCreatureLootAOE(Player* player, ObjectGuid lootguid)
 {
     bool _enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
 
     if (!_enable)
+        return;
+
+    if (!lootguid.IsCreature())
         return;
 
     float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
@@ -29,7 +32,6 @@ void OnCreatureLootAOE(Player* player)
     std::list<Creature*> deadCreatures;
     uint32 gold = 0;
     player->GetDeadCreatureListInGrid(deadCreatures, range);
-    ObjectGuid lootGuid = player->GetLootGUID();
 
     for (auto& _creature : deadCreatures)
     {
@@ -43,7 +45,7 @@ void OnCreatureLootAOE(Player* player)
             InventoryResult msg;
             LootItem* lootItem = player->StoreLootItem(lootSlot, loot, msg);
 
-            if (msg != EQUIP_ERR_OK && lootGuid.IsItem() && loot->loot_type != LOOT_CORPSE)
+            if (msg != EQUIP_ERR_OK && lootguid.IsItem() && loot->loot_type != LOOT_CORPSE)
             {
                 lootItem->is_looted = true;
                 loot->NotifyItemRemoved(lootItem->itemIndex);
@@ -53,31 +55,20 @@ void OnCreatureLootAOE(Player* player)
             }
             else
             {
-                player->SendLootRelease(lootGuid);
+                player->SendLootRelease(player->GetLootGUID());
             }
         }
 
         if (loot->isLooted())
         {
+            player->GetSession()->DoLootRelease(lootguid);
+
             // skip pickpocketing loot for speed, skinning timer reduction is no-op in fact
             if (!_creature->IsAlive())
                 _creature->AllLootRemovedFromCorpse();
 
             _creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
             loot->clear();
-        }
-        else
-        {
-            // if the round robin player release, reset it.
-            if (player->GetGUID() == loot->roundRobinPlayer)
-            {
-                loot->roundRobinPlayer.Clear();
-
-                if (Group* group = player->GetGroup())
-                    group->SendLooter(_creature, nullptr);
-            }
-            // force dynflag update to update looter and lootable info
-            _creature->ForceValuesUpdateAtIndex(UNIT_DYNAMIC_FLAGS);
         }
     }
 
@@ -134,14 +125,14 @@ bool AoeLootPlayer::CanSendErrorAlreadyLooted(Player* /*player*/)
     return true;
 }
 
-void AoeLootPlayer::OnAfterCreatureLoot(Player* player)
+void AoeLootPlayer::OnLootItem(Player* player, Item* /*item*/, uint32 /*count*/, ObjectGuid lootguid)
 {
-    OnCreatureLootAOE(player);
+    OnCreatureLootAOE(player, lootguid);
 }
 
-void AoeLootPlayer::OnBeforeLootMoney(Player* player, Loot*)
+void AoeLootPlayer::OnBeforeLootMoney(Player* player, Loot* /*loot*/)
 {
-    OnCreatureLootAOE(player);
+    OnCreatureLootAOE(player, player->GetLootGUID());
 }
 
 /*
