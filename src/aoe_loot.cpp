@@ -116,7 +116,8 @@ void AoeLootPlayer::OnLogin(Player* player)
 {
     if (sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
     {
-        ChatHandler(player->GetSession()).PSendSysMessage(AOE_ACORE_STRING_MESSAGE);
+        if (sConfigMgr->GetOption<bool>("AOELoot.Message", true))
+            ChatHandler(player->GetSession()).PSendSysMessage(AOE_ACORE_STRING_MESSAGE);
     }
 }
 
