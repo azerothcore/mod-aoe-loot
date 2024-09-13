@@ -17,102 +17,7 @@
 
 #include "aoe_loot.h"
 
-void OnCreatureLootAOE(Player* player, ObjectGuid lootguid)
-{
-    bool _enable = sConfigMgr->GetOption<bool>("AOELoot.Enable", true);
-
-    if (!_enable)
-        return;
-
-    if (!lootguid.IsCreature())
-        return;
-
-    float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0);
-
-    std::list<Creature*> deadCreatures;
-    uint32 gold = 0;
-    player->GetDeadCreatureListInGrid(deadCreatures, range);
-
-    for (auto& _creature : deadCreatures)
-    {
-        Loot* loot = &_creature->loot;
-        gold += loot->gold;
-        loot->gold = 0;
-        uint8 maxSlot = loot->GetMaxSlotInLootFor(player);
-
-        for (uint32 lootSlot = 0; lootSlot < maxSlot; ++lootSlot)
-        {
-            InventoryResult msg;
-            LootItem* lootItem = player->StoreLootItem(lootSlot, loot, msg);
-
-            if (msg != EQUIP_ERR_OK && lootguid.IsItem() && loot->loot_type != LOOT_CORPSE)
-            {
-                lootItem->is_looted = true;
-                loot->NotifyItemRemoved(lootItem->itemIndex);
-                loot->unlootedCount--;
-
-                player->SendItemRetrievalMail(lootItem->itemid, lootItem->count);
-            }
-            else
-            {
-                player->SendLootRelease(player->GetLootGUID());
-            }
-        }
-
-        if (loot->isLooted())
-        {
-            player->GetSession()->DoLootRelease(lootguid);
-
-            // skip pickpocketing loot for speed, skinning timer reduction is no-op in fact
-            if (!_creature->IsAlive())
-                _creature->AllLootRemovedFromCorpse();
-
-            _creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
-            loot->clear();
-        }
-    }
-
-    if (player->GetGroup())
-    {
-        Group* group = player->GetGroup();
-
-        std::vector<Player*> playersNear;
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-        {
-            Player* member = itr->GetSource();
-            if (!member)
-                continue;
-
-            if (player->IsAtLootRewardDistance(member))
-                playersNear.push_back(member);
-        }
-
-        uint32 goldPerPlayer = uint32((gold) / (playersNear.size()));
-
-        for (std::vector<Player*>::const_iterator i = playersNear.begin(); i != playersNear.end(); ++i)
-        {
-            (*i)->ModifyMoney(goldPerPlayer);
-            (*i)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, goldPerPlayer);
-
-            WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
-            data << uint32(goldPerPlayer);
-            data << uint8(playersNear.size() > 1 ? 0 : 1);
-            (*i)->GetSession()->SendPacket(&data);
-        }
-    }
-    else
-    {
-        player->ModifyMoney(gold);
-        player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_LOOT_MONEY, gold);
-
-        WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4 + 1);
-        data << uint32(gold);
-        data << uint8(1);
-        player->GetSession()->SendPacket(&data);
-    }
-}
-
-void AoeLootPlayer::OnLogin(Player* player)
+void AOELootPlayer::OnLogin(Player* player)
 {
     if (sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
     {
@@ -121,36 +26,77 @@ void AoeLootPlayer::OnLogin(Player* player)
     }
 }
 
-bool AoeLootPlayer::CanSendErrorAlreadyLooted(Player* /*player*/)
+bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
 {
-    return true;
-}
-
-void AoeLootPlayer::OnLootItem(Player* player, Item* /*item*/, uint32 /*count*/, ObjectGuid lootguid)
-{
-    OnCreatureLootAOE(player, lootguid);
-}
-
-void AoeLootPlayer::OnBeforeLootMoney(Player* player, Loot* /*loot*/)
-{
-    OnCreatureLootAOE(player, player->GetLootGUID());
-}
-
-/*
-* This function is responsible for deleting the player's leftover items.
-* But it only deletes those that are from a quest, and that cannot be obtained if the quest were not being carried out.
-* Since there are some items that can be obtained even if you are not doing a quest.
-*/
-void AoeLootPlayer::OnPlayerCompleteQuest(Player* player, Quest const* quest)
-{
-    for (uint8 i = 0; i < QUEST_ITEM_OBJECTIVES_COUNT; ++i)
+    if (packet.GetOpcode() == CMSG_LOOT)
     {
-        if (ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(quest->RequiredItemId[i]))
+        Player* player = session->GetPlayer();
+
+        if (!sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
+            return true;
+
+        if (player->GetGroup() && !sConfigMgr->GetOption<bool>("AOELoot.Group", true))
+            return true;
+
+        float range = sConfigMgr->GetOption<float>("AOELoot.Range", 55.0);
+
+        std::list<Creature*> lootcreature; player->GetDeadCreatureListInGrid(lootcreature, range);
+
+        ObjectGuid guid; packet >> guid;
+
+        Loot* mainloot = &(player->GetMap()->GetCreature(guid))->loot;
+
+        for (auto itr = lootcreature.begin(); itr != lootcreature.end(); ++itr)
         {
-            if ((itemTemplate->Bonding == BIND_QUEST_ITEM) && (!quest->IsRepeatable()))
+            Creature* creature = *itr;
+
+            // Prevent infiny add items
+            if (creature->GetGUID() == guid)
+                continue;
+
+            // Prevent steal loot
+            if (!player->GetMap()->Instanceable())
+                if (!player->isAllowedToLoot(creature))
+                    continue;
+
+            // Max 15 items per creature
+            if (mainloot->items.size() + mainloot->quest_items.size() > 15)
+                break;
+
+            Loot* loot = &(*itr)->loot;
+
+            // FILL QITEMS
+            if (!loot->quest_items.empty())
             {
-                player->DestroyItemCount(quest->RequiredItemId[i], 9999, true);
+                mainloot->items.insert(mainloot->items.end(), loot->quest_items.begin(), loot->quest_items.end());
+                loot->quest_items.clear();
+            }
+
+            // FILL GOLD
+            if (loot->gold != 0)
+            {
+                mainloot->gold += loot->gold;
+                loot->gold = 0;
+            }
+
+            // FILL ITEMS
+            if (!loot->items.empty())
+            {
+                mainloot->items.insert(mainloot->items.end(), loot->items.begin(), loot->items.end());
+                loot->items.clear();
+            }
+
+            // Set flag for skinning
+            if (loot->items.empty() && loot->quest_items.empty())
+            {
+                creature->AllLootRemovedFromCorpse();
+                creature->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
             }
         }
+
+        player->SendLoot(guid, LOOT_CORPSE);
+        return false;
     }
+
+    return true;
 }

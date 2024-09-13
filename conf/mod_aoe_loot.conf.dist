@@ -35,19 +35,19 @@ AOELoot.Enable = 1
 AOELoot.Message = 1
 
 #
-#   AOELoot.MailEnable
-#       Description: Enables the sending of mail if there are no spaces in the bags.
+#   AOELoot.Range
+#       Description: Maximum reach range search loot.
+#       Default:    55.0
+#
+
+AOELoot.Range = 55.0
+
+#
+#   AOELoot.Group
+#       Description: Enables area loot if the player is in a group
 #       Default:    1 (Enabled)
 #       Possible values:    0 - (Disabled)
 #                           1 - (Enabled)
 #
 
-AOELoot.MailEnable = 1
-
-#
-#   AOELoot.Range
-#       Description: Maximum reach range search loot.
-#       Default:    30.0
-#
-
-AOELoot.Range = 30.0
+AOELoot.Group = 1

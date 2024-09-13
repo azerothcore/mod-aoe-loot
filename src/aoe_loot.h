@@ -30,23 +30,26 @@ enum AoeLootString
     AOE_ITEM_IN_THE_MAIL
 };
 
-void OnCreatureLootAOE(Player* player, ObjectGuid lootguid);
-
-class AoeLootPlayer : public PlayerScript
+class AOELootPlayer : public PlayerScript
 {
 public:
-    AoeLootPlayer() : PlayerScript("AoeLootPlayer") { }
+    AOELootPlayer() : PlayerScript("AOELootPlayer") { }
 
     void OnLogin(Player* player) override;
-    bool CanSendErrorAlreadyLooted(Player* /*player*/) override;
-    void OnLootItem(Player* player, Item* /*item*/, uint32 /*count*/, ObjectGuid lootguid) override;
-    void OnBeforeLootMoney(Player* player, Loot* /*loot*/) override;
-    void OnPlayerCompleteQuest(Player* player, Quest const* quest) override;
+};
+
+class AOELootServer : public ServerScript
+{
+public:
+    AOELootServer() : ServerScript("AOELootServer") { }
+
+    bool CanPacketReceive(WorldSession* session, WorldPacket& packet) override;
 };
 
 void AddSC_AoeLoot()
 {
-    new AoeLootPlayer();
+    new AOELootPlayer();
+    new AOELootServer();
 }
 
 #endif //MODULE_AOELOOT_H
