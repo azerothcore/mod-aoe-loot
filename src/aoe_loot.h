@@ -35,7 +35,7 @@ class AOELootPlayer : public PlayerScript
 public:
     AOELootPlayer() : PlayerScript("AOELootPlayer") { }
 
-    void OnLogin(Player* player) override;
+    void OnPlayerLogin(Player* player) override;
 };
 
 class AOELootServer : public ServerScript

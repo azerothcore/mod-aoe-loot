@@ -17,7 +17,7 @@
 
 #include "aoe_loot.h"
 
-void AOELootPlayer::OnLogin(Player* player)
+void AOELootPlayer::OnPlayerLogin(Player* player)
 {
     if (sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
     {
