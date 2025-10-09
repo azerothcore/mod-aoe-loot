@@ -107,7 +107,7 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
     Loot* mainLoot = &mainCreature->loot;
 
     // Limit number of corpses to process
-    const size_t maxCorpses = 10; // 减少到10个以提高稳定性
+    const size_t maxCorpses = 10; // set to 10 to improve stability
     size_t processedCorpses = 0;
 
     // Track total gold to merge
