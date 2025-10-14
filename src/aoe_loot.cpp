@@ -29,9 +29,7 @@ void AOELootPlayer::OnPlayerLogin(Player* player)
         if (sConfigMgr->GetOption<bool>("AOELoot.Message", true))
         {
             if (WorldSession* session = player->GetSession())
-            {
                 ChatHandler(session).PSendSysMessage(AOE_ACORE_STRING_MESSAGE);
-            }
         }
     }
 }
@@ -64,6 +62,7 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
     // Limit range to reasonable values
     if (range < 5.0f)
         range = 5.0f;
+
     if (range > 100.0f)
         range = 100.0f;
 
@@ -107,7 +106,7 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
     Loot* mainLoot = &mainCreature->loot;
 
     // Limit number of corpses to process
-    const size_t maxCorpses = 10; // set to 10 to improve stability
+    size_t const maxCorpses = 10; // set to 10 to improve stability
     size_t processedCorpses = 0;
 
     // Track total gold to merge
@@ -135,21 +134,16 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
         if (loot->gold > 0)
         {
             // Prevent overflow
-            if (totalGold < std::numeric_limits<uint32>::max() - loot->gold)
-            {
+            if (totalGold < (std::numeric_limits<uint32>::max() - loot->gold))
                 totalGold += loot->gold;
-            }
         }
 
         // Collect regular items
         for (size_t i = 0; i < loot->items.size(); ++i)
         {
             // Check if there's still space
-            if (mainLoot->items.size() + itemsToAdd.size() +
-                mainLoot->quest_items.size() + questItemsToAdd.size() >= 15)
-            {
+            if ((mainLoot->items.size() + itemsToAdd.size() + mainLoot->quest_items.size() + questItemsToAdd.size()) >= 15)
                 break;
-            }
 
             itemsToAdd.push_back(loot->items[i]);
         }
@@ -158,11 +152,8 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
         for (size_t i = 0; i < loot->quest_items.size(); ++i)
         {
             // Check if there's still space
-            if (mainLoot->items.size() + itemsToAdd.size() +
-                mainLoot->quest_items.size() + questItemsToAdd.size() >= 15)
-            {
+            if ((mainLoot->items.size() + itemsToAdd.size() + mainLoot->quest_items.size() + questItemsToAdd.size()) >= 15)
                 break;
-            }
 
             questItemsToAdd.push_back(loot->quest_items[i]);
         }
@@ -183,18 +174,14 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
     for (const auto& item : itemsToAdd)
     {
         if (mainLoot->items.size() < 15)
-        {
             mainLoot->items.push_back(item);
-        }
     }
 
     // Add quest items
     for (const auto& item : questItemsToAdd)
     {
         if (mainLoot->quest_items.size() < 15)
-        {
             mainLoot->quest_items.push_back(item);
-        }
     }
 
     // Send merged loot window
