@@ -16,8 +16,8 @@
  */
 
 #include "aoe_loot.h"
-#include <limits>
 #include <algorithm>
+#include <limits>
 
 void AOELootPlayer::OnPlayerLogin(Player* player)
 {
