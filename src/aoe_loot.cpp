@@ -177,11 +177,10 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
             mainLoot->items.push_back(item);
     }
 
-    // Add quest items
+    // Add quest items to player inventory
     for (const auto& item : questItemsToAdd)
     {
-        if (mainLoot->quest_items.size() < 15)
-            mainLoot->quest_items.push_back(item);
+        player->AddItem(item.itemid, item.count);
     }
 
     // Send merged loot window
