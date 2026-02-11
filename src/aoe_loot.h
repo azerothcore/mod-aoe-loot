@@ -37,8 +37,12 @@ using namespace Acore::ChatCommands;
 
 enum AoeLootString
 {
-    AOE_ACORE_STRING_MESSAGE = 50000,
-    AOE_ITEM_IN_THE_MAIL
+    AOE_ACORE_STRING_MESSAGE = 50000,      // Login message
+    AOE_ITEM_IN_THE_MAIL = 50001,          // Mail notification
+    AOE_LOOT_ALREADY_ENABLED = 50004,      // Already enabled message
+    AOE_LOOT_ENABLED = 50005,              // Enabled confirmation
+    AOE_LOOT_ALREADY_DISABLED = 50006,     // Already disabled message
+    AOE_LOOT_DISABLED = 50007              // Disabled confirmation
 };
 
 class AOELootPlayer : public PlayerScript

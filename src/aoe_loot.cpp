@@ -229,7 +229,6 @@ bool AoeLootCommandScript::getPlayerAoeLootEnabled(uint64 guid)
 void AoeLootCommandScript::setPlayerAoeLootEnabled(uint64 guid, bool mode)
 {
     playerAoeLootEnabled[guid] = mode;
-    //AoeLootCommandScript::DebugMessage(nullptr, fmt::format("Set AOE loot enabled for GUID {}: {}", guid, mode));
 }
 
 bool AoeLootCommandScript::HandleAoeLootOnCommand(ChatHandler* handler, Optional<std::string> /*args*/)
@@ -243,12 +242,12 @@ bool AoeLootCommandScript::HandleAoeLootOnCommand(ChatHandler* handler, Optional
     if (AoeLootCommandScript::hasPlayerAoeLootEnabled(playerGuid) &&
         AoeLootCommandScript::getPlayerAoeLootEnabled(playerGuid))
     {
-        handler->PSendSysMessage("AOE Loot is already enabled for your character.");
+        handler->PSendSysMessage(AOE_LOOT_ALREADY_ENABLED);
         return true;
     }
 
     AoeLootCommandScript::setPlayerAoeLootEnabled(playerGuid, true);
-    handler->PSendSysMessage("AOE Loot enabled for your character. Type: '.aoeloot off' to turn AoE Looting off.");
+    handler->PSendSysMessage(AOE_LOOT_ENABLED);
     return true;
 }
 
@@ -263,11 +262,11 @@ bool AoeLootCommandScript::HandleAoeLootOffCommand(ChatHandler* handler, Optiona
     if (AoeLootCommandScript::hasPlayerAoeLootEnabled(playerGuid) &&
         !AoeLootCommandScript::getPlayerAoeLootEnabled(playerGuid))
     {
-        handler->PSendSysMessage("AOE Loot is already disabled for your character.");
+        handler->PSendSysMessage(AOE_LOOT_ALREADY_DISABLED);
         return true;
     }
 
     AoeLootCommandScript::setPlayerAoeLootEnabled(playerGuid, false);
-    handler->PSendSysMessage("AOE Loot disabled for your character. Type: '.aoeloot on' to turn AoE Looting on.");
+    handler->PSendSysMessage(AOE_LOOT_DISABLED);
     return true;
 }
