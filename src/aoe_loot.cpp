@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <limits>
 
+std::map<uint64, bool> AoeLootCommandScript::playerAoeLootEnabled;
+
 void AOELootPlayer::OnPlayerLogin(Player* player)
 {
     if (!player)
@@ -50,6 +52,12 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
 
     // Check if module is enabled
     if (!sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
+        return true;
+
+    // Check if player has AOE loot disabled via command
+    uint64 playerGuid = player->GetGUID().GetRawValue();
+    if (AoeLootCommandScript::hasPlayerAoeLootEnabled(playerGuid) &&
+        !AoeLootCommandScript::getPlayerAoeLootEnabled(playerGuid))
         return true;
 
     // Check group settings
@@ -187,4 +195,78 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
     player->SendLoot(targetGuid, LOOT_CORPSE);
 
     return false;
+}
+
+ChatCommandTable AoeLootCommandScript::GetCommands() const
+{
+    static ChatCommandTable aoeLootSubCommandTable =
+    {
+        { "on", HandleAoeLootOnCommand, SEC_PLAYER, Console::No },
+        { "off", HandleAoeLootOffCommand, SEC_PLAYER, Console::No }
+    };
+
+    static ChatCommandTable aoeLootCommandTable =
+    {
+        { "aoeloot", aoeLootSubCommandTable }
+    };
+
+    return aoeLootCommandTable;
+}
+
+bool AoeLootCommandScript::hasPlayerAoeLootEnabled(uint64 guid)
+{
+    return playerAoeLootEnabled.count(guid) > 0;
+}
+
+bool AoeLootCommandScript::getPlayerAoeLootEnabled(uint64 guid)
+{
+    auto it = playerAoeLootEnabled.find(guid);
+    if (it != playerAoeLootEnabled.end())
+        return it->second;
+    return false;
+}
+
+void AoeLootCommandScript::setPlayerAoeLootEnabled(uint64 guid, bool mode)
+{
+    playerAoeLootEnabled[guid] = mode;
+}
+
+bool AoeLootCommandScript::HandleAoeLootOnCommand(ChatHandler* handler, Optional<std::string> /*args*/)
+{
+    Player* player = handler->GetSession()->GetPlayer();
+    if (!player)
+        return true;
+
+    uint64 playerGuid = player->GetGUID().GetRawValue();
+
+    if (AoeLootCommandScript::hasPlayerAoeLootEnabled(playerGuid) &&
+        AoeLootCommandScript::getPlayerAoeLootEnabled(playerGuid))
+    {
+        handler->PSendSysMessage(AOE_LOOT_ALREADY_ENABLED);
+        return true;
+    }
+
+    AoeLootCommandScript::setPlayerAoeLootEnabled(playerGuid, true);
+    handler->PSendSysMessage(AOE_LOOT_ENABLED);
+    return true;
+}
+
+bool AoeLootCommandScript::HandleAoeLootOffCommand(ChatHandler* handler, Optional<std::string> /*args*/)
+{
+    Player* player = handler->GetSession()->GetPlayer();
+    if (!player)
+        return true;
+
+    uint64 playerGuid = player->GetGUID().GetRawValue();
+
+    if (AoeLootCommandScript::hasPlayerAoeLootEnabled(playerGuid) &&
+        !AoeLootCommandScript::getPlayerAoeLootEnabled(playerGuid))
+    {
+        handler->PSendSysMessage(AOE_LOOT_ALREADY_DISABLED);
+        return true;
+    }
+
+    AoeLootCommandScript::setPlayerAoeLootEnabled(playerGuid, false);
+    handler->PSendSysMessage(AOE_LOOT_DISABLED);
+    return true;
 }

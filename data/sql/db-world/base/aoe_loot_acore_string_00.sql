@@ -1,0 +1,8 @@
+DELETE FROM `acore_string` WHERE `entry` BETWEEN 50002 AND 50007;
+INSERT INTO `acore_string` (`entry`, `content_default`, `locale_koKR`, `locale_frFR`, `locale_deDE`, `locale_zhCN`, `locale_zhTW`, `locale_esES`, `locale_esMX`, `locale_ruRU`) VALUES
+(50002, 'AOE Loot module is active. Use .aoeloot on/off to toggle it.', '', '', '', '', '', 'El módulo de Botín AOE está activo. Usa .aoeloot on/off para activarlo o desactivarlo.', 'El módulo de Botín AOE está activo. Usa .aoeloot on/off para activarlo o desactivarlo.', ''),
+(50003, 'AOE Loot: Quest item sent to your mailbox.', '', '', '', '', '', 'Botín AOE: Objeto de misión enviado a tu buzón.', 'Botín AOE: Objeto de misión enviado a tu buzón.', ''),
+(50004, 'AOE Loot is already enabled for your character.', '', '', '', '', '', 'El Botín AOE ya está activado para tu personaje.', 'El Botín AOE ya está activado para tu personaje.', ''),
+(50005, 'AOE Loot enabled for your character. Type .aoeloot off to disable it.', '', '', '', '', '', 'Botín AOE activado para tu personaje. Escribe .aoeloot off para desactivarlo.', 'Botín AOE activado para tu personaje. Escribe .aoeloot off para desactivarlo.', ''),
+(50006, 'AOE Loot is already disabled for your character.', '', '', '', '', '', 'El Botín AOE ya está desactivado para tu personaje.', 'El Botín AOE ya está desactivado para tu personaje.', ''),
+(50007, 'AOE Loot disabled for your character. Type .aoeloot on to enable it.', '', '', '', '', '', 'Botín AOE desactivado para tu personaje. Escribe .aoeloot on para activarlo.', 'Botín AOE desactivado para tu personaje. Escribe .aoeloot on para activarlo.', '');

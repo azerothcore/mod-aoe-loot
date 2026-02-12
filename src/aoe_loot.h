@@ -33,11 +33,16 @@
 
  // Maximum loot items count
 constexpr size_t MAX_LOOT_ITEMS = 16;
+using namespace Acore::ChatCommands;
 
 enum AoeLootString
 {
-    AOE_ACORE_STRING_MESSAGE = 50000,
-    AOE_ITEM_IN_THE_MAIL
+    AOE_ACORE_STRING_MESSAGE = 50000,      // Login message
+    AOE_ITEM_IN_THE_MAIL = 50001,          // Mail notification
+    AOE_LOOT_ALREADY_ENABLED = 50004,      // Already enabled message
+    AOE_LOOT_ENABLED = 50005,              // Enabled confirmation
+    AOE_LOOT_ALREADY_DISABLED = 50006,     // Already disabled message
+    AOE_LOOT_DISABLED = 50007              // Disabled confirmation
 };
 
 class AOELootPlayer : public PlayerScript
@@ -100,10 +105,29 @@ struct AOELootConfig
     }
 };
 
+class AoeLootCommandScript : public CommandScript
+{
+public:
+    AoeLootCommandScript() : CommandScript("AoeLootCommandScript") {}
+    ChatCommandTable GetCommands() const override;
+
+    static bool HandleAoeLootOnCommand(ChatHandler* handler, Optional<std::string> args);
+    static bool HandleAoeLootOffCommand(ChatHandler* handler, Optional<std::string> args);
+
+    // Getters and setters for player AOE loot settings
+    static bool getPlayerAoeLootEnabled(uint64 guid);
+    static void setPlayerAoeLootEnabled(uint64 guid, bool mode);
+    static bool hasPlayerAoeLootEnabled(uint64 guid);
+
+private:
+    static std::map<uint64, bool> playerAoeLootEnabled;
+};
+
 void AddSC_AoeLoot()
 {
     new AOELootPlayer();
     new AOELootServer();
+    new AoeLootCommandScript();
 }
 
 #endif //MODULE_AOELOOT_H
