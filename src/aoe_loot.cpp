@@ -26,10 +26,9 @@ void AOELootPlayer::OnPlayerLogin(Player* player)
     if (!player)
         return;
 
-    if (sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
-        if (sConfigMgr->GetOption<bool>("AOELoot.Message", true))
-            if (WorldSession* session = player->GetSession())
-                ChatHandler(session).PSendModuleSysMessage(MODULE_STRING, AOE_LOGIN_MESSAGE);
+    if (sConfigMgr->GetOption<bool>("AOELoot.Enable", true) && sConfigMgr->GetOption<bool>("AOELoot.Message", true))
+        if (WorldSession* session = player->GetSession())
+            ChatHandler(session).PSendModuleSysMessage(MODULE_STRING, AOE_LOGIN_MESSAGE);
 }
 
 bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
