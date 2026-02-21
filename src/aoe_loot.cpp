@@ -27,13 +27,9 @@ void AOELootPlayer::OnPlayerLogin(Player* player)
         return;
 
     if (sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
-    {
         if (sConfigMgr->GetOption<bool>("AOELoot.Message", true))
-        {
             if (WorldSession* session = player->GetSession())
-                ChatHandler(session).PSendSysMessage(AOE_ACORE_STRING_MESSAGE);
-        }
-    }
+                ChatHandler(session).PSendModuleSysMessage(MODULE_STRING, AOE_LOGIN_MESSAGE);
 }
 
 bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
@@ -242,12 +238,12 @@ bool AoeLootCommandScript::HandleAoeLootOnCommand(ChatHandler* handler, Optional
     if (AoeLootCommandScript::hasPlayerAoeLootEnabled(playerGuid) &&
         AoeLootCommandScript::getPlayerAoeLootEnabled(playerGuid))
     {
-        handler->PSendSysMessage(AOE_LOOT_ALREADY_ENABLED);
+        handler->PSendModuleSysMessage(MODULE_STRING, AOE_LOOT_ALREADY_ENABLED);
         return true;
     }
 
     AoeLootCommandScript::setPlayerAoeLootEnabled(playerGuid, true);
-    handler->PSendSysMessage(AOE_LOOT_ENABLED);
+    handler->PSendModuleSysMessage(MODULE_STRING, AOE_LOOT_ENABLED);
     return true;
 }
 
@@ -262,11 +258,11 @@ bool AoeLootCommandScript::HandleAoeLootOffCommand(ChatHandler* handler, Optiona
     if (AoeLootCommandScript::hasPlayerAoeLootEnabled(playerGuid) &&
         !AoeLootCommandScript::getPlayerAoeLootEnabled(playerGuid))
     {
-        handler->PSendSysMessage(AOE_LOOT_ALREADY_DISABLED);
+        handler->PSendModuleSysMessage(MODULE_STRING, AOE_LOOT_ALREADY_DISABLED);
         return true;
     }
 
     AoeLootCommandScript::setPlayerAoeLootEnabled(playerGuid, false);
-    handler->PSendSysMessage(AOE_LOOT_DISABLED);
+    handler->PSendModuleSysMessage(MODULE_STRING, AOE_LOOT_DISABLED);
     return true;
 }

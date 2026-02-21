@@ -30,6 +30,9 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <string>
+
+#define MODULE_STRING "mod-aoe-loot"
 
  // Maximum loot items count
 constexpr size_t MAX_LOOT_ITEMS = 16;
@@ -37,18 +40,20 @@ using namespace Acore::ChatCommands;
 
 enum AoeLootString
 {
-    AOE_ACORE_STRING_MESSAGE = 50000,      // Login message
-    AOE_ITEM_IN_THE_MAIL = 50001,          // Mail notification
-    AOE_LOOT_ALREADY_ENABLED = 50004,      // Already enabled message
-    AOE_LOOT_ENABLED = 50005,              // Enabled confirmation
-    AOE_LOOT_ALREADY_DISABLED = 50006,     // Already disabled message
-    AOE_LOOT_DISABLED = 50007              // Disabled confirmation
+    AOE_LOGIN_MESSAGE = 1,         // Login message
+    AOE_ITEM_IN_THE_MAIL = 2,      // Mail notification
+    AOE_MODULE_ACTIVE = 3,         // unused
+    AOE_QUEST_ITEM_SENT = 4,       // unused
+    AOE_LOOT_ALREADY_ENABLED = 5,  // Already enabled message
+    AOE_LOOT_ENABLED = 6,          // Enabled confirmation
+    AOE_LOOT_ALREADY_DISABLED = 7, // Already disabled message
+    AOE_LOOT_DISABLED = 8          // Disabled confirmation
 };
 
 class AOELootPlayer : public PlayerScript
 {
 public:
-    AOELootPlayer() : PlayerScript("AOELootPlayer") {}
+    AOELootPlayer() : PlayerScript("AOELootPlayer", { PLAYERHOOK_ON_LOGIN }) {}
 
     void OnPlayerLogin(Player* player) override;
 };
@@ -56,7 +61,7 @@ public:
 class AOELootServer : public ServerScript
 {
 public:
-    AOELootServer() : ServerScript("AOELootServer") {}
+    AOELootServer() : ServerScript("AOELootServer", { SERVERHOOK_CAN_PACKET_RECEIVE }) {}
 
     bool CanPacketReceive(WorldSession* session, WorldPacket& packet) override;
 
