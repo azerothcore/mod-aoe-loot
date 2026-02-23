@@ -16,6 +16,7 @@
  */
 
 #include "aoe_loot.h"
+#include "ObjectMgr.h"
 #include <algorithm>
 #include <limits>
 
@@ -151,14 +152,57 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
             itemsToAdd.push_back(loot->items[i]);
         }
 
-        // Collect quest items
+        // Collect quest items (only for active quests, limited to needed count)
         for (size_t i = 0; i < loot->quest_items.size(); ++i)
         {
             // Check if there's still space
             if ((mainLoot->items.size() + itemsToAdd.size() + mainLoot->quest_items.size() + questItemsToAdd.size()) >= 15)
                 break;
 
-            questItemsToAdd.push_back(loot->quest_items[i]);
+            LootItem const& questItem = loot->quest_items[i];
+
+            // Skip items the player doesn't need (no active quest or quest already satisfied)
+            if (!player->HasQuestForItem(questItem.itemid))
+                continue;
+
+            // Calculate how many the player still needs across all active quests
+            uint32 maxNeeded = 0;
+            for (uint8 slot = 0; slot < MAX_QUEST_LOG_SIZE; ++slot)
+            {
+                uint32 questId = player->GetQuestSlotQuestId(slot);
+                if (!questId)
+                    continue;
+
+                Quest const* quest = sObjectMgr->GetQuestTemplate(questId);
+                if (!quest)
+                    continue;
+
+                for (uint8 j = 0; j < QUEST_ITEM_OBJECTIVES_COUNT; ++j)
+                {
+                    if (quest->RequiredItemId[j] == questItem.itemid && quest->RequiredItemCount[j] > maxNeeded)
+                        maxNeeded = quest->RequiredItemCount[j];
+                }
+            }
+
+            if (maxNeeded == 0)
+                continue;
+
+            // Count how many the player already has (including items we're about to add)
+            uint32 ownedCount = player->GetItemCount(questItem.itemid, true);
+            for (auto const& pending : questItemsToAdd)
+            {
+                if (pending.itemid == questItem.itemid)
+                    ownedCount += pending.count;
+            }
+
+            if (ownedCount >= maxNeeded)
+                continue;
+
+            uint32 stillNeeded = maxNeeded - ownedCount;
+            LootItem cappedItem = questItem;
+            cappedItem.count = std::min(static_cast<uint32>(questItem.count), stillNeeded);
+
+            questItemsToAdd.push_back(cappedItem);
         }
 
         // Clear source loot (but don't modify vector directly)
@@ -180,9 +224,12 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
             mainLoot->items.push_back(item);
     }
 
-    // Add quest items to player inventory
+    // Add quest items to player inventory (re-check need in case main loot already satisfies quest)
     for (const auto& item : questItemsToAdd)
     {
+        if (!player->HasQuestForItem(item.itemid))
+            continue;
+
         player->AddItem(item.itemid, item.count);
     }
 
