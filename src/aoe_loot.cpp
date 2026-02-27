@@ -146,7 +146,7 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
         for (size_t i = 0; i < loot->items.size(); ++i)
         {
             // Check if there's still space
-            if ((mainLoot->items.size() + itemsToAdd.size() + mainLoot->quest_items.size() + questItemsToAdd.size()) >= 15)
+            if ((mainLoot->items.size() + itemsToAdd.size() + mainLoot->quest_items.size() + questItemsToAdd.size()) >= MAX_LOOT_ITEMS)
                 break;
 
             itemsToAdd.push_back(loot->items[i]);
@@ -156,12 +156,12 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
         for (size_t i = 0; i < loot->quest_items.size(); ++i)
         {
             // Check if there's still space
-            if ((mainLoot->items.size() + itemsToAdd.size() + mainLoot->quest_items.size() + questItemsToAdd.size()) >= 15)
+            if ((mainLoot->items.size() + itemsToAdd.size() + mainLoot->quest_items.size() + questItemsToAdd.size()) >= MAX_LOOT_ITEMS)
                 break;
 
             LootItem const& questItem = loot->quest_items[i];
 
-            // Skip items the player doesn't need (no active quest or quest already satisfied)
+            // Skip items the player doesn't need for any active quest
             if (!player->HasQuestForItem(questItem.itemid))
                 continue;
 
@@ -187,12 +187,18 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
             if (maxNeeded == 0)
                 continue;
 
-            // Count how many the player already has (including items we're about to add)
+            // Count how many the player already has, plus pending adds
+            // and quest items already in the main loot window
             uint32 ownedCount = player->GetItemCount(questItem.itemid, true);
             for (auto const& pending : questItemsToAdd)
             {
                 if (pending.itemid == questItem.itemid)
                     ownedCount += pending.count;
+            }
+            for (auto const& mainQuestItem : mainLoot->quest_items)
+            {
+                if (mainQuestItem.itemid == questItem.itemid)
+                    ownedCount += mainQuestItem.count;
             }
 
             if (ownedCount >= maxNeeded)
@@ -220,11 +226,11 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
     // Add regular items
     for (const auto& item : itemsToAdd)
     {
-        if (mainLoot->items.size() < 15)
+        if (mainLoot->items.size() < MAX_LOOT_ITEMS)
             mainLoot->items.push_back(item);
     }
 
-    // Add quest items to player inventory (re-check need in case main loot already satisfies quest)
+    // Add quest items directly to player inventory
     for (const auto& item : questItemsToAdd)
     {
         if (!player->HasQuestForItem(item.itemid))
