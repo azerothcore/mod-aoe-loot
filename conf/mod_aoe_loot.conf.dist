@@ -18,24 +18,24 @@
 ########################################
 #
 #    AOELoot.Enable
-#         Description: Enables Module
-#         Default:    0 - (Disabled)
-#                     1 - (Enabled)
+#        Description: Enables Module
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
 #
 
 AOELoot.Enable = 1
 
 #
 #    AOELoot.Message
-#         Description: Enable message on login
-#         Default:    0 - (Disabled)
-#                     1 - (Enabled)
+#        Description: Enables area loot if the player is in a group
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
 #
 
 AOELoot.Message = 1
 
 #
-#   AOELoot.Range
+#    AOELoot.Range
 #       Description: Maximum reach range search loot.
 #       Default:    55.0
 #
@@ -43,11 +43,10 @@ AOELoot.Message = 1
 AOELoot.Range = 55.0
 
 #
-#   AOELoot.Group
-#       Description: Enables area loot if the player is in a group
-#       Default:    1 (Enabled)
-#       Possible values:    0 - (Disabled)
-#                           1 - (Enabled)
+#    AOELoot.Group
+#        Description: Enables area loot if the player is in a group
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
 #
 
 AOELoot.Group = 1
