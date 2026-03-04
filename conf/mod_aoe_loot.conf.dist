@@ -38,6 +38,7 @@ AOELoot.Message = 1
 #    AOELoot.Range
 #       Description: Maximum reach range search loot.
 #       Default:    55.0
+#       Range:      5.0 - 100.0
 #
 
 AOELoot.Range = 55.0

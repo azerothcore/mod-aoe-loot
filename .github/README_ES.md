@@ -18,7 +18,7 @@ Este módulo habilita la funcionalidad de saqueo en área (AOE) para AzerothCore
 - **Rango Configurable**: Los administradores del servidor pueden establecer la distancia máxima para la recolección de botín AOE
 - **Soporte de Grupo**: Saqueo en grupo opcional con configuración personalizable
 - **Optimizado para Rendimiento**: Limita el número de cadáveres procesados para mantener la estabilidad del servidor
-- **Gestión Inteligente de Objetos**: 
+- **Gestión Inteligente de Objetos**:
   - Acumulación automática de oro con protección contra desbordamiento
   - Objetos de misión enviados directamente al inventario
   - Máximo de 15 objetos por ventana de botín para evitar problemas de interfaz
@@ -86,10 +86,10 @@ AOELoot.Enable = 1
 #
 #    AOELoot.Range
 #        Descripción: Distancia máxima (en yardas) para recolectar botín de cadáveres cercanos
-#        Por defecto:  30.0
+#        Por defecto:  55.0
 #        Rango:        5.0 - 100.0
 
-AOELoot.Range = 30.0
+AOELoot.Range = 55.0
 
 #
 #    AOELoot.Group
@@ -160,7 +160,7 @@ El módulo puede controlarse a través de la configuración del archivo (ver sec
 | Opción | Tipo | Por Defecto | Descripción |
 |--------|------|-------------|-------------|
 | `AOELoot.Enable` | Booleano | 1 | Habilitar/deshabilitar módulo globalmente |
-| `AOELoot.Range` | Decimal | 30.0 | Radio máximo de recolección de botín (5.0 - 100.0) |
+| `AOELoot.Range` | Decimal | 55.0 | Radio máximo de recolección de botín (5.0 - 100.0) |
 | `AOELoot.Group` | Booleano | 1 | Permitir saqueo AOE en grupos |
 | `AOELoot.Message` | Booleano | 1 | Mostrar mensaje de inicio de sesión |
 
@@ -177,7 +177,7 @@ El módulo incluye soporte completo multi-idioma a través del sistema `acore_st
 Para agregar soporte de idiomas adicionales, actualiza el archivo SQL:
 
 ```sql
-UPDATE `acore_string` SET 
+UPDATE `acore_string` SET
     `locale_frFR` = 'Votre traduction ici',
     `locale_deDE` = 'Ihre Übersetzung hier',
     `locale_ruRU` = 'Ваш перевод здесь'
@@ -222,11 +222,11 @@ El módulo utiliza las entradas `acore_string` 50000-50007:
 **Soluciones:**
 - Verifica que el módulo esté habilitado: `AOELoot.Enable = 1`
 - Comprueba si lo desactivaste personalmente: usa `.aoeloot on`
-- Asegúrate de estar dentro del rango (30 yardas por defecto)
+- Asegúrate de estar dentro del rango (55 yardas por defecto)
 - Si estás en grupo, verifica la configuración `AOELoot.Group`
 
 ### Problema: Los cadáveres no desaparecen
-**Solución:** 
+**Solución:**
 - Establece `Rate.Corpse.Decay.Looted = 0.01` en worldserver.conf
 
 ### Problema: Mensajes en idioma incorrecto

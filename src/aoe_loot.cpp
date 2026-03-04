@@ -60,7 +60,7 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket& packet)
         return true;
 
     // Get configured loot range
-    float range = sConfigMgr->GetOption<float>("AOELoot.Range", 30.0f);
+    float range = sConfigMgr->GetOption<float>("AOELoot.Range", 55.0f);
 
     // Limit range to reasonable values
     if (range < 5.0f)

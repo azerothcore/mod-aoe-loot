@@ -18,7 +18,7 @@ This module enables Area of Effect (AOE) looting functionality for AzerothCore, 
 - **Configurable Range**: Server administrators can set the maximum distance for AOE loot collection
 - **Group Support**: Optional group looting with configurable settings
 - **Performance Optimized**: Limits number of corpses processed to maintain server stability
-- **Smart Item Management**: 
+- **Smart Item Management**:
   - Automatic gold accumulation with overflow protection
   - Quest items sent directly to inventory
   - Maximum 15 items per loot window to prevent UI issues
@@ -86,10 +86,10 @@ AOELoot.Enable = 1
 #
 #    AOELoot.Range
 #        Description: Maximum distance (in yards) to collect loot from nearby corpses
-#        Default:     30.0
+#        Default:     55.0
 #        Range:       5.0 - 100.0
 
-AOELoot.Range = 30.0
+AOELoot.Range = 55.0
 
 #
 #    AOELoot.Group
@@ -160,7 +160,7 @@ The module can be controlled through configuration file settings (see Configurat
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `AOELoot.Enable` | Boolean | 1 | Enable/disable module globally |
-| `AOELoot.Range` | Float | 30.0 | Maximum loot collection radius (5.0 - 100.0) |
+| `AOELoot.Range` | Float | 55.0 | Maximum loot collection radius (5.0 - 100.0) |
 | `AOELoot.Group` | Boolean | 1 | Allow AOE loot in groups |
 | `AOELoot.Message` | Boolean | 1 | Show login message |
 
@@ -177,7 +177,7 @@ The module includes full multi-language support through AzerothCore's `acore_str
 To add additional language support, update the SQL file:
 
 ```sql
-UPDATE `acore_string` SET 
+UPDATE `acore_string` SET
     `locale_frFR` = 'Votre traduction ici',
     `locale_deDE` = 'Ihre Übersetzung hier',
     `locale_ruRU` = 'Ваш перевод здесь'
@@ -222,7 +222,7 @@ The module uses `acore_string` entries 50000-50007:
 **Solutions:**
 - Verify module is enabled: `AOELoot.Enable = 1`
 - Check if you disabled it personally: use `.aoeloot on`
-- Ensure you're within range (default 30 yards)
+- Ensure you're within range (default 55 yards)
 - If in group, check `AOELoot.Group` setting
 
 ### Issue: Corpses not disappearing
