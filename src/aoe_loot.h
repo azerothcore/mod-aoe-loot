@@ -63,7 +63,7 @@ class AOELootServer : public ServerScript
 public:
     AOELootServer() : ServerScript("AOELootServer", { SERVERHOOK_CAN_PACKET_RECEIVE }) {}
 
-    bool CanPacketReceive(WorldSession* session, WorldPacket& packet) override;
+    bool CanPacketReceive(WorldSession* session, WorldPacket const& packet) override;
 
 private:
     // Helper function - Check if loot is valid
