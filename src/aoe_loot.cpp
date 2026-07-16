@@ -374,8 +374,6 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
 
     for (Creature* creature : nearbyCorpses)
     {
-        //if (processedCorpses >= maxCorpses)
-            //break;
 
         if (!creature)
             continue;
