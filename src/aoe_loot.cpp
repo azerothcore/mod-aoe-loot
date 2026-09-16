@@ -211,6 +211,39 @@ namespace
             HasSimpleRegularLootRules(item);
     }
 
+    // True when the group's loot method launches rolls (or master
+    // assignment) for items at or above the loot threshold.
+    bool LootMethodUsesRolls(Group const* group)
+    {
+        if (!group)
+            return false;
+
+        switch (group->GetLootMethod())
+        {
+            case GROUP_LOOT:
+            case NEED_BEFORE_GREED:
+            case MASTER_LOOT:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool IsOverLootThreshold(LootItem const& item, Group const* group)
+    {
+        if (!group)
+            return false;
+
+        ItemTemplate const* itemTemplate =
+            sObjectMgr->GetItemTemplate(item.itemid);
+
+        if (!itemTemplate)
+            return false;
+
+        return itemTemplate->Quality >=
+            uint32(group->GetLootThreshold());
+    }
+
     void CompactTransferredRegularLoot(Loot* loot)
     {
         if (!loot ||
@@ -328,6 +361,12 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
     if (!mainCreature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE))
         return true;
 
+    // Boss corpses keep their own loot window. Pulling boss drops into a
+    // trash window (or trash into a boss window) hides where items came from
+    // and, if the target corpse was already opened, silently skips the roll.
+    if (mainCreature->isWorldBoss() || mainCreature->IsDungeonBoss())
+        return true;
+
     // Get nearby corpses
     std::list<Creature*> nearbyCorpses;
     player->GetDeadCreatureListInGrid(nearbyCorpses, range);
@@ -335,10 +374,19 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
     // Remove invalid corpses and main target
     nearbyCorpses.remove_if([&](Creature* c)
         {
-            return !c ||
+            if (!c ||
                 c->GetGUID() == targetGuid ||
                 !c->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE) ||
-                !player->isAllowedToLoot(c);
+                !player->isAllowedToLoot(c))
+            {
+                return true;
+            }
+
+            // Never merge skinning loot; it requires a direct open via SendLoot.
+            if (c->loot.loot_type == LOOT_SKINNING)
+                return true;
+
+            return false;
         });
 
     // If no other corpses, process normally
@@ -351,8 +399,34 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
     // Get main loot
     Loot* mainLoot = &mainCreature->loot;
 
+    Group* group = player->GetGroup();
+    LootMethod lootMethod = group ? group->GetLootMethod() : FREE_FOR_ALL;
+
+    // Every group method except free-for-all hides under-threshold items from
+    // everyone but the round-robin owner of that corpse.
+    bool usesRoundRobinOwner = group && lootMethod != FREE_FOR_ALL;
+
+    // If this player is not the round-robin owner of the clicked corpse, any
+    // items merged into it would be invisible to them. Fall back to a normal
+    // open so they can still launch rolls or take their personal items.
+    if (usesRoundRobinOwner &&
+        mainLoot->roundRobinPlayer &&
+        mainLoot->roundRobinPlayer != player->GetGUID())
+    {
+        player->SendLoot(targetGuid, LOOT_CORPSE);
+        return false;
+    }
+
     // Track total gold to merge
     uint32 totalGold = mainLoot->gold;
+
+    // Player::SendLoot only runs GroupLoot/NeedBeforeGreed/MasterLoot the
+    // first time a corpse is opened (loot_type == LOOT_NONE). Items merged
+    // into an already opened corpse would therefore never be rolled, so in
+    // that case rollable items must stay on their own corpse.
+    bool rollsPending = LootMethodUsesRolls(group);
+    bool mainWindowWillRoll =
+        rollsPending && mainLoot->loot_type == LOOT_NONE;
 
     struct RegularLootCandidate
     {
@@ -384,6 +458,21 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
         if (loot->isLooted())
             continue;
 
+        // Boss corpses are never drained into another creature's window.
+        // The player opens the boss directly and normal group rules apply.
+        if (creature->isWorldBoss() || creature->IsDungeonBoss())
+            continue;
+
+        // Under round-robin rules the merged items become visible only to
+        // the round-robin owner of the main corpse. Only merge corpses this
+        // player already owns so nobody else loses access to their items.
+        if (usesRoundRobinOwner &&
+            loot->roundRobinPlayer &&
+            loot->roundRobinPlayer != player->GetGUID())
+        {
+            continue;
+        }
+
         processedCreatures.push_back(creature);
 
         // Gold does not consume a loot-window row.
@@ -405,6 +494,16 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
 
             if (!CanSafelySortLootItem(item))
                 continue;
+
+            // Rollable items may only be merged if the main window is
+            // still going to run the group roll pass. Otherwise leave
+            // them on their corpse so the roll starts when it is opened.
+            if (rollsPending &&
+                !mainWindowWillRoll &&
+                IsOverLootThreshold(item, group))
+            {
+                continue;
+            }
 
             regularCandidates.push_back(
                 { creature, i, item });
@@ -615,6 +714,21 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
     // Apply all successfully collected gold to the selected corpse.
     mainLoot->gold = totalGold;
 
+    // When GroupLoot already ran (loot_type != LOOT_NONE), newly merged items
+    // didn't go through GroupLoot so is_underthreshold was never set. Fix that
+    // now so the group round-robin visibility rules apply correctly.
+    if (mainLoot->loot_type != LOOT_NONE && group)
+    {
+        for (LootItem& item : mainLoot->items)
+        {
+            if (item.is_counted || item.is_blocked || item.is_underthreshold)
+                continue;
+
+            if (!IsOverLootThreshold(item, group))
+                item.is_underthreshold = true;
+        }
+    }
+
     // Remove only rows that were successfully transferred.
     // Rejected overflow rows remain on their source corpses.
     for (Creature* creature : processedCreatures)
@@ -626,10 +740,28 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
         if (!loot->isLooted())
             continue;
 
+        // Don't clear while a group roll is still in flight; clearing
+        // invalidates Roll::isValid() and silently aborts active rolls.
+        bool hasActiveRoll = std::any_of(
+            loot->items.begin(), loot->items.end(),
+            [](LootItem const& item) { return item.is_blocked; });
+
+        if (hasActiveRoll)
+            continue;
+
+        // isLooted() already accounts for other members' FFA, quest and
+        // conditional rows (unlootedCount is filled for every member at
+        // kill time), so this mirrors DoLootRelease for a fully drained corpse.
         creature->AllLootRemovedFromCorpse();
         creature->RemoveDynamicFlag(
             UNIT_DYNFLAG_LOOTABLE);
         loot->clear();
+
+        if (group)
+            group->SendLooter(creature, nullptr);
+
+        // Push the flag change to clients so the corpse stops sparkling.
+        creature->ForceValuesUpdateAtIndex(UNIT_DYNAMIC_FLAGS);
     }
     
     // Organize regular loot before sending the window.

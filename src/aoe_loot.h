@@ -34,8 +34,8 @@
 
 #define MODULE_STRING "mod-aoe-loot"
 
- // Maximum loot items count
-constexpr size_t MAX_LOOT_ITEMS = 16;
+// Use the same cap as the core loot window.
+constexpr size_t MAX_LOOT_ITEMS = MAX_NR_LOOT_ITEMS;
 using namespace Acore::ChatCommands;
 
 enum AoeLootString
