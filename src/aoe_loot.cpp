@@ -16,7 +16,10 @@
  */
 
 #include "aoe_loot.h"
+#include "DatabaseEnv.h"
+#include "Item.h"
 #include "ObjectMgr.h"
+#include "World.h"
 #include <algorithm>
 #include <limits>
 
@@ -25,6 +28,127 @@ std::map<uint64, bool> AoeLootCommandScript::playerAoeLootEnabled;
 namespace
 {
     constexpr uint32 AOE_LOOT_STACK_LIMIT = 200;
+
+    bool MailEnabled = false;
+
+    // Loot window opened by the module, kept on the player.
+    struct AoeLootWindow : public DataMap::Base
+    {
+        ObjectGuid CreatureGuid;
+    };
+
+    std::string const AOE_LOOT_WINDOW_KEY = "mod-aoe-loot.window";
+
+    void TrackAoeLootWindow(Player* player, ObjectGuid creatureGuid)
+    {
+        player->CustomData.GetDefault<AoeLootWindow>(
+            AOE_LOOT_WINDOW_KEY)->CreatureGuid = creatureGuid;
+    }
+
+    void ForgetAoeLootWindow(Player* player)
+    {
+        player->CustomData.Erase(AOE_LOOT_WINDOW_KEY);
+    }
+
+    bool IsAoeLootWindow(Player const* player, ObjectGuid lootGuid)
+    {
+        if (!lootGuid)
+            return false;
+
+        AoeLootWindow const* window =
+            player->CustomData.Get<AoeLootWindow>(AOE_LOOT_WINDOW_KEY);
+        return window && window->CreatureGuid == lootGuid;
+    }
+
+    // Same "no maximum" test as Player::CanTakeMoreSimilarItems.
+    bool HasCarryLimit(ItemTemplate const* proto)
+    {
+        return (proto->MaxCount > 0 || proto->ItemLimitCategory) &&
+            proto->MaxCount != std::numeric_limits<int32>::max();
+    }
+
+    // Item::CreateItem clamps the count to one stack, so split the row.
+    bool CreateMailItems(
+        Player* player,
+        ItemTemplate const* proto,
+        LootItem const& lootItem,
+        std::vector<Item*>& mailItems)
+    {
+        uint32 maxStack = std::max<uint32>(proto->GetMaxStackSize(), 1);
+        uint32 remaining = lootItem.count;
+
+        while (remaining > 0)
+        {
+            uint32 pieceCount = std::min(remaining, maxStack);
+            Item* item = Item::CreateItem(
+                lootItem.itemid,
+                pieceCount,
+                player,
+                false,
+                lootItem.randomPropertyId);
+            if (!item)
+            {
+                for (Item* created : mailItems)
+                    delete created;
+
+                mailItems.clear();
+                return false;
+            }
+
+            // Random properties queue the item for the owner's inventory
+            // save, which deletes an item it can't find in the bags.
+            item->RemoveFromUpdateQueueOf(player);
+
+            mailItems.push_back(item);
+            remaining -= pieceCount;
+        }
+
+        return !mailItems.empty();
+    }
+
+    // Mirrors SendRollWonItemViaMail in Group.cpp.
+    void SendMailItems(
+        Player* player,
+        LootItem const& lootItem,
+        std::vector<Item*> const& mailItems)
+    {
+        AllowedLooterSet looters = lootItem.GetAllowedLooters();
+
+        for (Item* item : mailItems)
+        {
+            ItemTemplate const* proto = item->GetTemplate();
+            // Preserve the 2-hour group trade window the item would have
+            // had if stored directly.
+            if (looters.size() > 1 && proto->GetMaxStackSize() == 1 &&
+                (proto->Bonding == BIND_WHEN_PICKED_UP ||
+                    proto->Bonding == BIND_QUEST_ITEM) &&
+                sWorld->getBoolConfig(CONFIG_SET_BOP_ITEM_TRADEABLE))
+            {
+                item->SetBinding(true);
+                item->SetSoulboundTradeable(looters);
+                item->SetUInt32Value(
+                    ITEM_FIELD_CREATE_PLAYED_TIME,
+                    player->GetTotalPlayedTime());
+
+                std::string lootersStr;
+                for (ObjectGuid const& guid : looters)
+                {
+                    if (!lootersStr.empty())
+                        lootersStr += ' ';
+                    lootersStr += std::to_string(guid.GetCounter());
+                }
+
+                CharacterDatabasePreparedStatement* stmt =
+                    CharacterDatabase.GetPreparedStatement(
+                        CHAR_INS_ITEM_BOP_TRADE);
+                stmt->SetData(0, item->GetGUID().GetCounter());
+                stmt->SetData(1, lootersStr);
+                CharacterDatabase.Execute(stmt);
+            }
+
+            player->SendItemRetrievalMail(item);
+        }
+    }
 
     bool CanStackRegularLoot(LootItem const& existingItem, LootItem const& incomingItem)
     {
@@ -319,10 +443,18 @@ void AOELootPlayer::OnPlayerLogin(Player* player)
             ChatHandler(session).PSendModuleSysMessage(MODULE_STRING, AOE_LOGIN_MESSAGE);
 }
 
+void AOELootWorld::OnAfterConfigLoad(bool /*reload*/)
+{
+    MailEnabled = sConfigMgr->GetOption<bool>("AOELoot.MailEnable", false);
+}
+
 bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& packet)
 {
-    // Only handle loot packets
-    if (packet.GetOpcode() != CMSG_LOOT)
+    // Only handle loot open, loot release and item pickup packets
+    uint16 opcode = packet.GetOpcode();
+    if (opcode != CMSG_LOOT &&
+        opcode != CMSG_LOOT_RELEASE &&
+        opcode != CMSG_AUTOSTORE_LOOT_ITEM)
         return true;
 
     // Basic validation checks
@@ -332,6 +464,18 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
     Player* player = session->GetPlayer();
     if (!player)
         return true;
+
+    if (opcode == CMSG_LOOT_RELEASE)
+    {
+        ForgetAoeLootWindow(player);
+        return true;
+    }
+
+    if (opcode == CMSG_AUTOSTORE_LOOT_ITEM)
+        return HandleAutostoreLootItem(player, packet);
+
+    // A new loot window replaces the tracked one
+    ForgetAoeLootWindow(player);
 
     // Check if module is enabled
     if (!sConfigMgr->GetOption<bool>("AOELoot.Enable", true))
@@ -396,6 +540,7 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
     if (nearbyCorpses.empty())
     {
         player->SendLoot(targetGuid, LOOT_CORPSE);
+        TrackAoeLootWindow(player, targetGuid);
         return false;
     }
 
@@ -709,6 +854,123 @@ bool AOELootServer::CanPacketReceive(WorldSession* session, WorldPacket const& p
 
     // Send merged loot window
     player->SendLoot(targetGuid, LOOT_CORPSE);
+    TrackAoeLootWindow(player, targetGuid);
+
+    return false;
+}
+
+bool AOELootServer::HandleAutostoreLootItem(
+    Player* player,
+    WorldPacket const& packet)
+{
+    if (!MailEnabled)
+        return true;
+
+    if (packet.size() < 1)
+        return true;
+
+    WorldPacket packetCopy(packet);
+    uint8 lootSlot = 0;
+    packetCopy >> lootSlot;
+
+    // Only windows the module opened itself
+    ObjectGuid lootGuid = player->GetLootGUID();
+    if (!IsAoeLootWindow(player, lootGuid))
+        return true;
+
+    // Every check below is at least as strict as the core pickup path,
+    // so any failure leaves the packet to the core handler.
+    if (player->HasPlayerFlag(PLAYER_FLAGS_NO_PLAY_TIME))
+        return true;
+
+    Creature* creature = player->GetMap()->GetCreature(lootGuid);
+    if (!creature ||
+        creature->IsAlive() ||
+        !creature->IsWithinDistInMap(player, INTERACTION_DISTANCE) ||
+        creature->loot.loot_type != LOOT_CORPSE)
+        return true;
+
+    Loot* loot = &creature->loot;
+    QuestItem* qitem = nullptr;
+    QuestItem* ffaitem = nullptr;
+    QuestItem* conditem = nullptr;
+
+    LootItem* item = loot->LootItemInSlot(
+        lootSlot, player, &qitem, &ffaitem, &conditem);
+    if (!item || item->is_looted)
+        return true;
+
+    Group const* group = player->GetGroup();
+    if (!item->is_underthreshold &&
+        loot->roundRobinPlayer &&
+        group &&
+        group->GetLootMethod() == MASTER_LOOT &&
+        player->GetGUID() != group->GetMasterLooterGuid() &&
+        !qitem &&
+        !ffaitem &&
+        !conditem)
+        return true;
+
+    if (!item->AllowedForPlayer(player, loot->sourceWorldObjectGUID))
+        return true;
+
+    // Roll pending
+    if (!qitem && item->is_blocked)
+        return true;
+
+    if (item->rollWinnerGUID && item->rollWinnerGUID != player->GetGUID())
+        return true;
+
+    // Mail does not count towards carry limits, so limited items keep the
+    // core error.
+    ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item->itemid);
+    if (!proto || HasCarryLimit(proto))
+        return true;
+
+    // Only a lack of bag space is handled here.
+    ItemPosCountVec dest;
+    if (player->CanStoreNewItem(
+            NULL_BAG, NULL_SLOT, dest, item->itemid, item->count) !=
+        EQUIP_ERR_INVENTORY_FULL)
+        return true;
+
+    std::vector<Item*> mailItems;
+    if (!CreateMailItems(player, proto, *item, mailItems))
+        return true;
+
+    sScriptMgr->OnPlayerAfterCreatureLoot(player);
+
+    // Remove the row as Player::StoreLootItem does on success
+    if (qitem)
+    {
+        qitem->is_looted = true;
+        if (item->freeforall || loot->GetPlayerQuestItems().size() == 1)
+            player->SendNotifyLootItemRemoved(lootSlot);
+        else
+            loot->NotifyQuestItemRemoved(qitem->index);
+    }
+    else if (ffaitem)
+    {
+        ffaitem->is_looted = true;
+        player->SendNotifyLootItemRemoved(lootSlot);
+    }
+    else
+    {
+        if (conditem)
+            conditem->is_looted = true;
+
+        loot->NotifyItemRemoved(lootSlot);
+    }
+
+    if (!item->freeforall)
+        item->is_looted = true;
+
+    --loot->unlootedCount;
+
+    SendMailItems(player, *item, mailItems);
+
+    ChatHandler(player->GetSession()).PSendModuleSysMessage(
+        MODULE_STRING, AOE_ITEM_IN_THE_MAIL);
 
     return false;
 }

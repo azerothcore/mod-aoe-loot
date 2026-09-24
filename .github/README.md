@@ -107,6 +107,14 @@ AOELoot.Group = 1
 
 AOELoot.Message = 1
 
+#
+#    AOELoot.MailEnable
+#        Description: Mail looted items that don't fit in the bags (unique items are never mailed)
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+AOELoot.MailEnable = 0
+
 ###################################################################################################
 ```
 
@@ -163,6 +171,7 @@ The module can be controlled through configuration file settings (see Configurat
 | `AOELoot.Range` | Float | 55.0 | Maximum loot collection radius (5.0 - 100.0) |
 | `AOELoot.Group` | Boolean | 1 | Allow AOE loot in groups |
 | `AOELoot.Message` | Boolean | 1 | Show login message |
+| `AOELoot.MailEnable` | Boolean | 0 | Mail looted items that don't fit in the bags (unique items are never mailed) |
 
 ## Multi-language Support
 
@@ -201,7 +210,7 @@ The module uses `acore_string` entries 50000-50007:
 | Entry | Constant | Purpose |
 |-------|----------|---------|
 | 50000 | AOE_ACORE_STRING_MESSAGE | Login message |
-| 50001 | AOE_ITEM_IN_THE_MAIL | Mail notification (reserved) |
+| 50001 | AOE_ITEM_IN_THE_MAIL | Mail notification |
 | 50002-50003 | - | Reserved for future use |
 | 50004 | AOE_LOOT_ALREADY_ENABLED | "Already enabled" message |
 | 50005 | AOE_LOOT_ENABLED | "Enabled" confirmation |

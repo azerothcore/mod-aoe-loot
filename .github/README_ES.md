@@ -107,6 +107,15 @@ AOELoot.Group = 1
 
 AOELoot.Message = 1
 
+#
+#    AOELoot.MailEnable
+#        Descripción: Enviar por correo los objetos saqueados que no caben en las bolsas
+#                     (los objetos únicos nunca se envían)
+#        Por defecto:  0 (deshabilitado)
+#                      1 (habilitado)
+
+AOELoot.MailEnable = 0
+
 ###################################################################################################
 ```
 
@@ -163,6 +172,7 @@ El módulo puede controlarse a través de la configuración del archivo (ver sec
 | `AOELoot.Range` | Decimal | 55.0 | Radio máximo de recolección de botín (5.0 - 100.0) |
 | `AOELoot.Group` | Booleano | 1 | Permitir saqueo AOE en grupos |
 | `AOELoot.Message` | Booleano | 1 | Mostrar mensaje de inicio de sesión |
+| `AOELoot.MailEnable` | Booleano | 0 | Enviar por correo los objetos saqueados que no caben en las bolsas (los objetos únicos nunca se envían) |
 
 ## Soporte Multi-idioma
 
@@ -201,7 +211,7 @@ El módulo utiliza las entradas `acore_string` 50000-50007:
 | Entrada | Constante | Propósito |
 |---------|-----------|-----------|
 | 50000 | AOE_ACORE_STRING_MESSAGE | Mensaje de inicio de sesión |
-| 50001 | AOE_ITEM_IN_THE_MAIL | Notificación de correo (reservado) |
+| 50001 | AOE_ITEM_IN_THE_MAIL | Notificación de correo |
 | 50002-50003 | - | Reservado para uso futuro |
 | 50004 | AOE_LOOT_ALREADY_ENABLED | Mensaje "Ya activado" |
 | 50005 | AOE_LOOT_ENABLED | Confirmación "Activado" |
