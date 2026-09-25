@@ -51,3 +51,14 @@ AOELoot.Range = 55.0
 #
 
 AOELoot.Group = 1
+
+#
+#    AOELoot.MailEnable
+#        Description: Mail an item looted from an AoE loot window when it
+#                     does not fit in the bags. Unique items and quest items
+#                     auto-collected from nearby corpses are never mailed.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+#
+
+AOELoot.MailEnable = 0

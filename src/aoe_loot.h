@@ -58,6 +58,15 @@ public:
     void OnPlayerLogin(Player* player) override;
 };
 
+class AOELootWorld : public WorldScript
+{
+public:
+    AOELootWorld()
+        : WorldScript("AOELootWorld", { WORLDHOOK_ON_AFTER_CONFIG_LOAD }) {}
+
+    void OnAfterConfigLoad(bool reload) override;
+};
+
 class AOELootServer : public ServerScript
 {
 public:
@@ -77,6 +86,9 @@ private:
 
     // Safely merge loot items
     bool SafeMergeLootItems(Loot* mainLoot, Loot* sourceLoot, size_t& remainingSlots);
+
+    // Mail a clicked row that does not fit in the bags
+    bool HandleAutostoreLootItem(Player* player, WorldPacket const& packet);
 };
 
 // Configuration options structure (optional, for better config management)
@@ -131,6 +143,7 @@ private:
 void AddSC_AoeLoot()
 {
     new AOELootPlayer();
+    new AOELootWorld();
     new AOELootServer();
     new AoeLootCommandScript();
 }
