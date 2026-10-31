@@ -176,47 +176,45 @@ El módulo puede controlarse a través de la configuración del archivo (ver sec
 
 ## Soporte Multi-idioma
 
-El módulo incluye soporte completo multi-idioma a través del sistema `acore_string` de AzerothCore.
+Los textos del módulo se guardan en las tablas `module_string` (inglés) y `module_string_locale` (otros idiomas) de AzerothCore, con el nombre de módulo `mod-aoe-loot`.
 
 ### Idiomas Actualmente Soportados
 - 🇬🇧 Inglés (en_US)
+- 🇰🇷 Coreano (ko_KR)
+- 🇫🇷 Francés (fr_FR)
+- 🇩🇪 Alemán (de_DE)
+- 🇨🇳 Chino Simplificado (zh_CN)
+- 🇹🇼 Chino Tradicional (zh_TW)
 - 🇪🇸 Español (es_ES / es_MX)
+- 🇷🇺 Ruso (ru_RU)
 
 ### Agregar Más Idiomas
 
-Para agregar soporte de idiomas adicionales, actualiza el archivo SQL:
+Para agregar un idioma o cambiar una traducción, reemplaza sus filas en `module_string_locale`:
 
 ```sql
-UPDATE `acore_string` SET
-    `locale_frFR` = 'Votre traduction ici',
-    `locale_deDE` = 'Ihre Übersetzung hier',
-    `locale_ruRU` = 'Ваш перевод здесь'
-WHERE `entry` BETWEEN 50000 AND 50007;
+DELETE FROM `module_string_locale` WHERE `module` = 'mod-aoe-loot' AND `id` = 1 AND `locale` = 'frFR';
+INSERT INTO `module_string_locale` (`module`, `id`, `locale`, `string`) VALUES
+('mod-aoe-loot', 1, 'frFR', 'Votre traduction ici');
 ```
 
-Columnas de localización soportadas:
-- `locale_koKR` (Coreano)
-- `locale_frFR` (Francés)
-- `locale_deDE` (Alemán)
-- `locale_zhCN` (Chino Simplificado)
-- `locale_zhTW` (Chino Tradicional)
-- `locale_ruRU` (Ruso)
+`locale` es el nombre de la localización del cliente: `koKR`, `frFR`, `deDE`, `zhCN`, `zhTW`, `esES`, `esMX`, `ruRU`, o una añadida por un módulo de idioma.
 
 ## Detalles Técnicos
 
 ### Entradas de Base de Datos
 
-El módulo utiliza las entradas `acore_string` 50000-50007:
+El módulo utiliza los ids 1-8 de `module_string` del módulo `mod-aoe-loot`:
 
-| Entrada | Constante | Propósito |
-|---------|-----------|-----------|
-| 50000 | AOE_ACORE_STRING_MESSAGE | Mensaje de inicio de sesión |
-| 50001 | AOE_ITEM_IN_THE_MAIL | Notificación de correo |
-| 50002-50003 | - | Reservado para uso futuro |
-| 50004 | AOE_LOOT_ALREADY_ENABLED | Mensaje "Ya activado" |
-| 50005 | AOE_LOOT_ENABLED | Confirmación "Activado" |
-| 50006 | AOE_LOOT_ALREADY_DISABLED | Mensaje "Ya desactivado" |
-| 50007 | AOE_LOOT_DISABLED | Confirmación "Desactivado" |
+| Id | Constante | Propósito |
+|----|-----------|-----------|
+| 1 | AOE_LOGIN_MESSAGE | Mensaje de inicio de sesión |
+| 2 | AOE_ITEM_IN_THE_MAIL | Notificación de correo |
+| 3-4 | - | No utilizado |
+| 5 | AOE_LOOT_ALREADY_ENABLED | Mensaje "Ya activado" |
+| 6 | AOE_LOOT_ENABLED | Confirmación "Activado" |
+| 7 | AOE_LOOT_ALREADY_DISABLED | Mensaje "Ya desactivado" |
+| 8 | AOE_LOOT_DISABLED | Confirmación "Desactivado" |
 
 ### Consideraciones de Rendimiento
 
@@ -244,7 +242,7 @@ El módulo utiliza las entradas `acore_string` 50000-50007:
 **Solución:**
 - Verifica que el SQL se importó correctamente
 - Comprueba la configuración de localización del cliente
-- Confirma que la tabla `acore_string` tiene traducciones para tu localización
+- Confirma que la tabla `module_string_locale` tiene traducciones para tu localización
 
 ### Problema: Mensajes "Ya activado/desactivado" aparecen incorrectamente
 

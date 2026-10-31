@@ -175,47 +175,45 @@ The module can be controlled through configuration file settings (see Configurat
 
 ## Multi-language Support
 
-The module includes full multi-language support through AzerothCore's `acore_string` system.
+The module texts are stored in AzerothCore's `module_string` (English) and `module_string_locale` (other languages) tables, under the module name `mod-aoe-loot`.
 
 ### Currently Supported Languages
 - 🇬🇧 English (en_US)
+- 🇰🇷 Korean (ko_KR)
+- 🇫🇷 French (fr_FR)
+- 🇩🇪 German (de_DE)
+- 🇨🇳 Chinese Simplified (zh_CN)
+- 🇹🇼 Chinese Traditional (zh_TW)
 - 🇪🇸 Spanish (es_ES / es_MX)
+- 🇷🇺 Russian (ru_RU)
 
 ### Adding More Languages
 
-To add additional language support, update the SQL file:
+To add a language or change a translation, replace its rows in `module_string_locale`:
 
 ```sql
-UPDATE `acore_string` SET
-    `locale_frFR` = 'Votre traduction ici',
-    `locale_deDE` = 'Ihre Übersetzung hier',
-    `locale_ruRU` = 'Ваш перевод здесь'
-WHERE `entry` BETWEEN 50000 AND 50007;
+DELETE FROM `module_string_locale` WHERE `module` = 'mod-aoe-loot' AND `id` = 1 AND `locale` = 'frFR';
+INSERT INTO `module_string_locale` (`module`, `id`, `locale`, `string`) VALUES
+('mod-aoe-loot', 1, 'frFR', 'Votre traduction ici');
 ```
 
-Supported locale columns:
-- `locale_koKR` (Korean)
-- `locale_frFR` (French)
-- `locale_deDE` (German)
-- `locale_zhCN` (Chinese Simplified)
-- `locale_zhTW` (Chinese Traditional)
-- `locale_ruRU` (Russian)
+`locale` is the client locale name: `koKR`, `frFR`, `deDE`, `zhCN`, `zhTW`, `esES`, `esMX`, `ruRU`, or one added by a locale module.
 
 ## Technical Details
 
 ### Database Entries
 
-The module uses `acore_string` entries 50000-50007:
+The module uses the `module_string` ids 1-8 of the module `mod-aoe-loot`:
 
-| Entry | Constant | Purpose |
-|-------|----------|---------|
-| 50000 | AOE_ACORE_STRING_MESSAGE | Login message |
-| 50001 | AOE_ITEM_IN_THE_MAIL | Mail notification |
-| 50002-50003 | - | Reserved for future use |
-| 50004 | AOE_LOOT_ALREADY_ENABLED | "Already enabled" message |
-| 50005 | AOE_LOOT_ENABLED | "Enabled" confirmation |
-| 50006 | AOE_LOOT_ALREADY_DISABLED | "Already disabled" message |
-| 50007 | AOE_LOOT_DISABLED | "Disabled" confirmation |
+| Id | Constant | Purpose |
+|----|----------|---------|
+| 1 | AOE_LOGIN_MESSAGE | Login message |
+| 2 | AOE_ITEM_IN_THE_MAIL | Mail notification |
+| 3-4 | - | Not used |
+| 5 | AOE_LOOT_ALREADY_ENABLED | "Already enabled" message |
+| 6 | AOE_LOOT_ENABLED | "Enabled" confirmation |
+| 7 | AOE_LOOT_ALREADY_DISABLED | "Already disabled" message |
+| 8 | AOE_LOOT_DISABLED | "Disabled" confirmation |
 
 ### Performance Considerations
 
@@ -244,7 +242,7 @@ The module uses `acore_string` entries 50000-50007:
 **Solution:**
 - Verify SQL was imported correctly
 - Check client locale settings
-- Confirm `acore_string` table has translations for your locale
+- Confirm `module_string_locale` table has translations for your locale
 
 ### Issue: "Already enabled/disabled" messages appearing incorrectly
 
